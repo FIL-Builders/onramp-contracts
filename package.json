@@ -1,0 +1,25 @@
+{
+  "name": "@onramp_contract/hardhat",
+  "version": "0.0.1",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "deploy": "npx hardhat run deploy/deploy.ts --network calibration"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.1.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "dotenv": "^16.0.3",
+    "ethers": "^6.13.2",
+    "hardhat": "^2.3.3",
+    "hardhat-deploy": "^0.11.45",
+    "hardhat-deploy-ethers": "^0.4.1",
+    "typechain": "^8.3.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "ts-node": "^10.9.2"
+  }
+}
