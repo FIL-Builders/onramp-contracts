@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {AxelarExecutable} from "lib/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
-import {StringToAddress} from "lib/axelar-gmp-sdk-solidity/contracts/libs/AddressString.sol";
+import "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
+import "@axelar-network/axelar-gmp-sdk-solidity/contracts/libs/AddressString.sol";
 
 interface IBridgeContract {
     function _execute(
@@ -88,10 +88,11 @@ contract AxelarBridgeDebug is AxelarExecutable {
     constructor(address _gateway) AxelarExecutable(_gateway) {}
 
     function _execute(
+        bytes32 commandId,
         string calldata,
         string calldata sourceAddress_,
         bytes calldata payload_
-    ) internal override {
+    ) internal override{
         DataAttestation memory attestation = abi.decode(
             payload_,
             (DataAttestation)
@@ -118,10 +119,11 @@ contract AxelarBridge is AxelarExecutable {
     }
 
     function _execute(
+        bytes32 commandId,
         string calldata _sourceChain_,
         string calldata sourceAddress_,
         bytes calldata payload_
-    ) internal override {
+    ) internal override{
         DataAttestation memory attestation = abi.decode(
             payload_,
             (DataAttestation)

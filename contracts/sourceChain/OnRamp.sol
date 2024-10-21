@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
 
-import {IERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {Cid} from "./Cid.sol";
-import {TRUNCATOR} from "./Const.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Cid} from "../Cid.sol";
+import {TRUNCATOR} from "../Const.sol";
 import {DataAttestation} from "./Oracles.sol";
 
 // Adapted from https://github.com/lighthouse-web3/raas-starter-kit/blob/main/contracts/data-segment/Proof.sol

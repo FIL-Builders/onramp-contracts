@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {MarketAPI} from "lib/filecoin-solidity/contracts/v0.8/MarketAPI.sol";
-import {CommonTypes} from "lib/filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
-import {MarketTypes} from "lib/filecoin-solidity/contracts/v0.8/types/MarketTypes.sol";
-import {AccountTypes} from "lib/filecoin-solidity/contracts/v0.8/types/AccountTypes.sol";
-import {CommonTypes} from "lib/filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
-import {AccountCBOR} from "lib/filecoin-solidity/contracts/v0.8/cbor/AccountCbor.sol";
-import {MarketCBOR} from "lib/filecoin-solidity/contracts/v0.8/cbor/MarketCbor.sol";
-import {BytesCBOR} from "lib/filecoin-solidity/contracts/v0.8/cbor/BytesCbor.sol";
-import {BigInts} from "lib/filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
+import {MarketAPI} from "filecoin-solidity-api/contracts/v0.8/MarketAPI.sol";
+import {CommonTypes} from "filecoin-solidity-api/contracts/v0.8/types/CommonTypes.sol";
+import {MarketTypes} from "filecoin-solidity-api/contracts/v0.8/types/MarketTypes.sol";
+import {AccountTypes} from "filecoin-solidity-api/contracts/v0.8/types/AccountTypes.sol";
+import {CommonTypes} from "filecoin-solidity-api/contracts/v0.8/types/CommonTypes.sol";
+import {AccountCBOR} from "filecoin-solidity-api/contracts/v0.8/cbor/AccountCbor.sol";
+import {MarketCBOR} from "filecoin-solidity-api/contracts/v0.8/cbor/MarketCbor.sol";
+import {BytesCBOR} from "filecoin-solidity-api/contracts/v0.8/cbor/BytesCbor.sol";
+import {BigInts} from "filecoin-solidity-api/contracts/v0.8/utils/BigInts.sol";
 import {CBOR} from "solidity-cborutils/contracts/CBOR.sol";
-import {Misc} from "lib/filecoin-solidity/contracts/v0.8/utils/Misc.sol";
-import {FilAddresses} from "lib/filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
-import {DataAttestation, IBridgeContract, StringsEqual} from "./Oracles.sol";
-import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
-import {AxelarExecutable} from "lib/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
-import {IAxelarGateway} from "lib/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGateway.sol";
-import {IAxelarGasService} from "lib/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGasService.sol";
+import {Misc} from "filecoin-solidity-api/contracts/v0.8/utils/Misc.sol";
+import {FilAddresses} from "filecoin-solidity-api/contracts/v0.8/utils/FilAddresses.sol";
+import {DataAttestation, IBridgeContract, StringsEqual} from "../sourceChain/Oracles.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {AxelarExecutable} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
+import {IAxelarGateway} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGateway.sol";
+import {IAxelarGasService} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGasService.sol";
 
 using CBOR for CBOR.CBORBuffer;
 
-contract DealClient is AxelarExecutable {
+contract DealClientAxl is AxelarExecutable {
     using AccountCBOR for *;
     using MarketCBOR for *;
 
@@ -162,7 +162,15 @@ contract DealClient is AxelarExecutable {
             payload,
             msg.sender
         );
-        gateway.callContract(destinationChain, destinationAddress, payload);
+        gateway().callContract(destinationChain, destinationAddress, payload);
+    }
+
+    function _execute(
+        bytes32 commandId,
+        string calldata sourceChain,
+        string calldata sourceAddress,
+        bytes calldata payload) internal override{
+            //Do Nothing
     }
 
     function debug_call(

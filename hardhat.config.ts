@@ -31,6 +31,11 @@ const config: HardhatUserConfig = {
       url: "https://api.calibration.node.glif.io/rpc/v1",
       accounts: [deployerPrivateKey],
     },
+    linea: {
+      url: "https://rpc.sepolia.linea.build",
+      chainId: 59141,
+      accounts: [deployerPrivateKey],
+    }
   }
 };
 
