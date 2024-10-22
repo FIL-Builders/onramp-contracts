@@ -7,7 +7,7 @@ import { DeployFunction } from "hardhat-deploy/types";
  *
  * @param hre HardhatRuntimeEnvironment object.
  */
-const deployYourContract: DeployFunction = async function (
+const deployTokenContract: DeployFunction = async function (
   hre: HardhatRuntimeEnvironment
 ) {
   console.log("***** Start Deloying Contracts *****");
@@ -24,8 +24,8 @@ const deployYourContract: DeployFunction = async function (
   console.log("🚀 Nickle Contract Deployed at: ", NickleToken.address);
 };
 
-export default deployYourContract;
+export default deployTokenContract;
 
 // Tags are useful if you have multiple deploy files and only want to run one of them.
 // e.g. yarn deploy --tags OnRampSource
-deployYourContract.tags = ["Nickle"];
+deployTokenContract.tags = ["Nickle"];

@@ -14,8 +14,9 @@ async function main() {
   const onrampContract = await ethers.getContractAt("OnRampContract", onrampAddressLinea);
   const setOnrampTx = await onrampContract.setOracle(oracleAddressLinea);
   console.log("~*~*~ Connect Oracle to onrampContract at:", setOnrampTx.hash);
+  await setOnrampTx.wait();
   
-  const oracleContract = await ethers.getContractAt("ForwardingProofMockBridge", oracleAddressLinea);
+  const oracleContract = await ethers.getContractAt("AxelarBridge", oracleAddressLinea);
   const setOracleTx = await oracleContract.setSenderReceiver(proverAddressFilecoin,onrampAddressLinea);
   console.log("~*~*~ Setting sender & receiver to oracleContract at:", setOracleTx.hash);
   await setOracleTx.wait();
