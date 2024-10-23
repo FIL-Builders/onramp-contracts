@@ -38,9 +38,44 @@ export XCHAIN_ETH_API="http://127.0.0.1:1234/rpc/v1"
 13. run deploy script `deploy-onramp`
 
 
+## Setup with IPC 
+
+1. Follow deployment script instructions https://github.com/consensus-shipyard/ipc/blob/main/scripts/deploy_subnet_under_calibration_net/README.md
+Ensure you have the latest foundry and run make to set thing sup before running deploy.sh
+```
+~/ipc$ make
+~/ipc/scripts/deploy_subnet_under_calibration_net$ bash deploy.sh local
+```
+
+2. 
+
+setup ipc node
+
+```
+$ ./target/release/ipc-cli subnet create --parent /r314159 --min-validator-stake 1 --min-validators 1 --bottomup-check-period 300  --permission-mode collateral --supply-source-kind native 
+2024-10-22T21:36:52.659563Z  INFO ipc_provider::manager::evm::manager: creating subnet on evm with params: ConstructorParams { min_activation_collateral: 1000000000000000000, min_validators: 1, bottom_up_check_period: 300, ipc_gateway_addr: 0x834fe63204e519ca6071b8a85cd5d279769e9563, active_validators_limit: 100, majority_percentage: 67, consensus: 0, power_scale: 3, permission_mode: 0, supply_source: Asset { kind: 0, token_address: 0x0000000000000000000000000000000000000000 }, collateral_source: Asset { kind: 0, token_address: 0x0000000000000000000000000000000000000000 }, parent_id: SubnetID { root: 314159, route: [] }, validator_gater: 0x0000000000000000000000000000000000000000 }
+2024-10-22T21:38:01.183107Z  INFO ipc_cli::commands::subnet::create: created subnet actor with id: /r314159/t410f4taeev3geff6pmcjp6mhwyjycaq3o3fk66oin3q    
+mikers@mikers-B560-DS3H-AC-Y1:~/ipc$ ./target/release/ipc-cli subnet join --subnet=/r314159/t410f4taeev3geff6pmcjp6mhwyjycaq3o3fk66oin3q --collateral=10 --initial-balance 1
+2024-10-22T21:39:59.486057Z  INFO ipc_cli::commands::subnet::join: pre-funding address with 1    
+2024-10-22T21:39:59.492285Z  INFO ipc_provider::manager::evm::manager: interacting with evm subnet contract: 0xe4c0…6caa with balance: 1000000000000000000
+2024-10-22T21:40:01.933672Z  INFO ipc_provider: joining subnet with public key: "048c1d9a02d29f6ad10ee8c4ad92eb3eb7c5408e0e2e44a872eed7da281154546c6488f80fecde5eedb779a218a7c423a37d6b2fbf0dbd0a308ecf5cbc6d6a4ea8"    
+2024-10-22T21:40:01.933687Z  INFO ipc_provider::manager::evm::manager: interacting with evm subnet contract: 0xe4c0…6caa with collateral: 10000000000000000000
+joined at epoch: 2076895
+mikers@mikers-B560-DS3H-AC-Y1:~/ipc$ ./target/release/ipc-cli wallet export --address 0xbcfa6e2c5db2900ffc300387ccd747e589a22d9a --wallet-type evm  --hex > ~/.ipc/validator_default.sk
+```
+
+
+
+cargo make --makefile infra/fendermint/Makefile.toml -e NODE_NAME=validator-default -e PRIVATE_KEY_PATH=/home/mikers/.ipc/validator_default.sk -e SUBNET_ID=/r314159/t410f4taeev3geff6pmcjp6mhwyjycaq3o3fk66oin3q -e CMT_P2P_HOST_PORT=26656     -e CMT_RPC_HOST_PORT=26657     -e ETHAPI_HOST_PORT=8545     -e RESOLVER_HOST_PORT=26655     -e PARENT_GATEWAY=0x834FE63204e519Ca6071b8A85Cd5D279769e9563 -e PARENT_REGISTRY=0x00Dd8143FE31D82c317cc7a2a6050cbEeFc33e0F -e FM_PULL_SKIP=1     child-validator
+
+
+
 
 ## Shashank notes
 
 https://gist.github.com/lordshashank/fb2fbd53b5520a862bd451e3603b4718
 
 https://github.com/lordshashank/filecoin-deals       
+
+
+
