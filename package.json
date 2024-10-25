@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "compile": "npx hardhat compile",
-    "deploy": "npx hardhat run deploy/deploy.ts --network calibration"
+    "deploy": "npx hardhat deploy --tags Filecoin --network calibration"
   },
   "devDependencies": {
     "@axelar-network/axelar-gmp-sdk-solidity": "^6.0.0",
