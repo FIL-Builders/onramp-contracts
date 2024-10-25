@@ -113,7 +113,7 @@ func main() {
 						http.HandleFunc("/put", srv.PutHandler)
 						http.HandleFunc("/get", srv.GetHandler)
 
-						fmt.Printf("Server starting on port %d\n", cfg.BufferPort)
+						log.Printf("Server starting on port %d\n", cfg.BufferPort)
 						server := &http.Server{
 							Addr:    fmt.Sprintf("0.0.0.0:%d", cfg.BufferPort),
 							Handler: nil, // http.DefaultServeMux
@@ -196,6 +196,8 @@ func main() {
 							if err != nil {
 								log.Fatalf("failed to send tx: %v", err)
 							}
+
+							log.Printf("Waiting for transaction: %s\n", tx.Hash().Hex())
 							receipt, err := bind.WaitMined(cctx.Context, client, tx)
 							if err != nil {
 								log.Fatalf("failed to wait for tx: %v", err)
@@ -403,7 +405,7 @@ func NewAggregator(ctx context.Context, cfg *Config) (*aggregator, error) {
 		lotusAPI:       lAPI,
 		cleanup: func() {
 			closer()
-			fmt.Printf("done with lotus api closer\n")
+			log.Printf("done with lotus api closer\n")
 		},
 	}, nil
 }
@@ -434,7 +436,7 @@ func (a *aggregator) run(ctx context.Context) error {
 			}
 			err = a.SubscribeQuery(ctx, query)
 		}
-		fmt.Printf("context done exiting subscribe query\n")
+		log.Printf("context done exiting subscribe query\n")
 		return err
 	})
 
@@ -446,7 +448,7 @@ func (a *aggregator) run(ctx context.Context) error {
 	// Start handling data transfer requests
 	g.Go(func() error {
 		http.HandleFunc("/", a.transferHandler)
-		fmt.Printf("Server starting on port %d\n", transferPort)
+		log.Printf("Server starting on port %d\n", transferPort)
 		server := &http.Server{
 			Addr:    a.transferAddr,
 			Handler: nil, // http.DefaultServeMux
@@ -457,7 +459,7 @@ func (a *aggregator) run(ctx context.Context) error {
 			}
 		}()
 		<-ctx.Done()
-		fmt.Printf("context done about to shut down server\n")
+		log.Printf("context done about to shut down server\n")
 		// Context is cancelled, shut down the server
 		return server.Shutdown(context.Background())
 	})
@@ -501,7 +503,7 @@ func (a *aggregator) runAggregate(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Printf("ctx done shutting down aggregation")
+			log.Printf("ctx done shutting down aggregation")
 			return nil
 		case latestEvent := <-a.ch:
 			// Check if the offer is too big to fit in a valid aggregate on its own
@@ -517,7 +519,6 @@ func (a *aggregator) runAggregate(ctx context.Context) error {
 			})
 			if err != nil {
 				log.Printf("error creating aggregate: %s", err)
-				log.Printf("skipping offer %d, size %d exceeds max PODSI packable size %d", latestEvent.OfferID, latestEvent.Offer.Size, a.targetDealSize)
 				continue
 			}
 			// TODO: in production we'll maybe want to move data from buffer before we commit to storing it.
@@ -754,7 +755,7 @@ type lazyHTTPReader struct {
 func (l *lazyHTTPReader) Read(p []byte) (int, error) {
 	if !l.started {
 		// Start the HTTP request on the first Read call
-		fmt.Printf("reading %s\n", l.url)
+		log.Printf("reading %s\n", l.url)
 		resp, err := http.Get(l.url)
 		if err != nil {
 			return 0, err
@@ -853,7 +854,15 @@ LOOP:
 			if err != nil {
 				return err
 			}
+
 			log.Printf("Sending offer %d for aggregation\n", event.OfferID)
+			log.Printf("  Offer:\n")
+			log.Printf("    CommP: %v\n", event.Offer.CommP)
+			log.Printf("    Size: %d\n", event.Offer.Size)
+			log.Printf("    Location: %s\n", event.Offer.Location)
+			log.Printf("    Amount: %s\n", event.Offer.Amount.String()) // big.Int needs .String() for printing
+			log.Printf("    Token: %s\n", event.Offer.Token.Hex())      // Address needs .Hex() for printing
+
 			// This is where we should make packing decisions.
 			// In the current prototype we accept all offers regardless
 			// of payment type, amount or duration
@@ -909,6 +918,8 @@ func HandleOffer(offer *Offer) error {
 }
 
 func MakeOffer(cidStr string, sizeStr string, location string, token string, amountStr string, abi abi.ABI) (*Offer, error) {
+	log.Printf("MakeOffer called with cidStr: %s, sizeStr: %s, location: %s, token: %s, amountStr: %s\n", cidStr, sizeStr, location, token, amountStr)
+
 	commP, err := cid.Decode(cidStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse cid %w", err)
@@ -1020,22 +1031,21 @@ func LoadAbi(path string) (*abi.ABI, error) {
 }
 
 func encodeChainID(chainID *big.Int) ([]byte, error) {
-    // Define the ABI arguments
-    uint256Type, err := abi.NewType("uint256", "", nil)
-    if err != nil {
-        return nil, fmt.Errorf("failed to create uint256 type: %w", err)
-    }
+	// Define the ABI arguments
+	uint256Type, err := abi.NewType("uint256", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create uint256 type: %w", err)
+	}
 
-    arguments := abi.Arguments{
-        {Type: uint256Type}, // chainID is a uint256 in Solidity
-    }
+	arguments := abi.Arguments{
+		{Type: uint256Type}, // chainID is a uint256 in Solidity
+	}
 
-    // Pack the chainID into a byte array
-    data, err := arguments.Pack(chainID)
-    if err != nil {
-        return nil, fmt.Errorf("failed to encode chainID: %w", err)
-    }
+	// Pack the chainID into a byte array
+	data, err := arguments.Pack(chainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode chainID: %w", err)
+	}
 
-    return data, nil
+	return data, nil
 }
-
