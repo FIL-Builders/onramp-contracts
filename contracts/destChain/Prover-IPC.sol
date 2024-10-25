@@ -13,12 +13,13 @@ import {CBOR} from "solidity-cborutils/contracts/CBOR.sol";
 import {Misc} from "filecoin-solidity-api/contracts/v0.8/utils/Misc.sol";
 import {FilAddresses} from "filecoin-solidity-api/contracts/v0.8/utils/FilAddresses.sol";
 import {DataAttestation} from "../sourceChain/Oracles.sol";
-import {IpcContract} from "@ipc/sdk/IpcContract.sol";
-import {IpcEnvelope, CallMsg} from "@ipc/contracts/structs/CrossNet.sol";
-import {IPCAddress, SubnetID} from "@ipc/contracts/structs/Subnet.sol";
-import {SubnetIDHelper} from "@ipc/contracts/lib/SubnetIDHelper.sol";
-import {FvmAddressHelper} from "@ipc/contracts/lib/FvmAddressHelper.sol";
-import {FvmAddress} from "@ipc/contracts/structs/FvmAddress.sol";
+
+import { IpcContract } from "../lib/ipc/contracts/sdk/IpcContract.sol";
+import { IpcEnvelope, CallMsg } from "../lib/ipc/contracts/structs/CrossNet.sol";
+import { IPCAddress, SubnetID } from "../lib/ipc/contracts/structs/Subnet.sol";
+import { SubnetIDHelper } from "../lib/ipc/contracts/lib/SubnetIDHelper.sol";
+import { FvmAddressHelper } from "../lib/ipc/contracts/lib/FvmAddressHelper.sol";
+import { FvmAddress } from "../lib/ipc/contracts/structs/FvmAddress.sol";
 
 using CBOR for CBOR.CBORBuffer;
 
