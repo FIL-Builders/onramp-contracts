@@ -73,6 +73,11 @@ cargo make --makefile infra/fendermint/Makefile.toml -e NODE_NAME=validator-defa
 
 --- 
 
+sync ipc
+
+git submodule update --init --recursive   
+
+
 
 deploy contracts:
 
