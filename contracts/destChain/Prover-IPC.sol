@@ -13,18 +13,22 @@ import {CBOR} from "solidity-cborutils/contracts/CBOR.sol";
 import {Misc} from "filecoin-solidity-api/contracts/v0.8/utils/Misc.sol";
 import {FilAddresses} from "filecoin-solidity-api/contracts/v0.8/utils/FilAddresses.sol";
 import {DataAttestation} from "../sourceChain/Oracles.sol";
-import {IpcContract} from "@ipc/sdk/IpcContract.sol";
-import {IpcEnvelope, CallMsg} from "@ipc/contracts/structs/CrossNet.sol";
-import {IPCAddress, SubnetID} from "@ipc/contracts/structs/Subnet.sol";
-import {SubnetIDHelper} from "@ipc/contracts/lib/SubnetIDHelper.sol";
-import {FvmAddressHelper} from "@ipc/contracts/lib/FvmAddressHelper.sol";
-import {FvmAddress} from "@ipc/contracts/structs/FvmAddress.sol";
+
+import { IpcExchange } from "ipc-sdk/sdk/IpcContract.sol";
+import {IpcEnvelope, CallMsg, ResultMsg} from "ipc-sdk/contracts/structs/CrossNet.sol";
+import {IPCAddress, SubnetID} from "ipc-sdk/contracts/structs/Subnet.sol";
+import {SubnetIDHelper} from "ipc-sdk/contracts/lib/SubnetIDHelper.sol";
+import {FvmAddressHelper} from "ipc-sdk/contracts/lib/FvmAddressHelper.sol";
+import {FvmAddress} from "ipc-sdk/contracts/structs/FvmAddress.sol";
 
 using CBOR for CBOR.CBORBuffer;
 
-contract DealClientIPC is IpcContract {
+contract DealClientIPC is IpcExchange {
     using AccountCBOR for *;
     using MarketCBOR for *;
+
+    using SubnetIDHelper for SubnetID;
+
 
     uint64 public constant AUTHENTICATE_MESSAGE_METHOD_NUM = 2643134072;
     uint64 public constant MARKET_NOTIFY_DEAL_METHOD_NUM = 4186741094;
@@ -42,7 +46,7 @@ contract DealClientIPC is IpcContract {
     mapping(bytes => Status) public pieceStatus;
     mapping(bytes32 => address) public subnetIdToDestinationAddress; // SubnetID hash to destination address
 
-    constructor(address _gateway) IpcContract(_gateway) {
+    constructor(address _gateway) IpcExchange(_gateway) {
         // Initialization if needed
     }
 

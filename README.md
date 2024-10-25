@@ -71,6 +71,39 @@ cargo make --makefile infra/fendermint/Makefile.toml -e NODE_NAME=validator-defa
 
 
 
+--- 
+
+
+deploy contracts:
+
+mikers@mikers-B560-DS3H-AC-Y1:~/dev/fil-builders/onramp-contracts$ npm run deploy
+
+> @onramp_contract/hardhat@0.0.1 deploy
+> npx hardhat deploy --tags Filecoin --network calibration
+
+Nothing to compile
+No need to generate any newer typings.
+transaction 0xc5798f135124b6270579eea85e7d71230390bf2f96b2bf87090a6f419cf61ec5 still pending... It used a gas pricing config of maxPriorityFeePerGas: 126601 maxFeePerGas: 126727 ,
+              current gas price is 199169 wei
+              new baseFee is 100
+
+✖ Choose what to do with the pending transaction: ·
+
+
+stuck here
+
+go to https://calibration.filscan.io/en/message/bafy2bzacecgescjgxav2ut345ahqpoxwrvnmmjm6fa3e5ishfwehkfegiknps/
+
+find EthAddress: 0x169e6ca595dffe6b952786b097c422e863f587d7
+
+update .env with PROVER_CONTRACT_ADDRESS_DEST_CHAIN=0x169e6ca595dffe6b952786b097c422e863f587d7
+
+
+adding ipc submodule in contracts/lib
+
+run 'make' in ipc in order to ensure appropriate pre-reqs are available to copmile and use sdk. may be more efficient method but this accomplishes goal of setting up ipc's submodules
+
+
 ## Shashank notes
 
 https://gist.github.com/lordshashank/fb2fbd53b5520a862bd451e3603b4718

@@ -11,7 +11,7 @@ const deployerPrivateKey =
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.20",
+    version: "0.8.23",
     settings: {
       optimizer: {
         enabled: true,
@@ -34,6 +34,10 @@ const config: HardhatUserConfig = {
     linea: {
       url: "https://rpc.sepolia.linea.build",
       chainId: 59141,
+      accounts: [deployerPrivateKey],
+    },
+    ipc: {
+      url: "http://localhost:8545/",
       accounts: [deployerPrivateKey],
     }
   }
