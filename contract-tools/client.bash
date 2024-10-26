@@ -1,4 +1,6 @@
 #!/bin/bash
+set -o pipefail
+set -eu
 
 # Check if the file path to offer is passed as an argument
 if [ $# -ne 3 ]; then
@@ -6,7 +8,26 @@ if [ $# -ne 3 ]; then
     exit 1
 fi
 
+# Check if the 'car' command is available
+if ! command -v car &> /dev/null; then
+    echo "Error: car command not found"
+    exit 1
+fi
+
+# Check if the 'stream-commp' command is available
+if ! command -v stream-commp &> /dev/null; then
+    echo "Error: stream-commp command not found"
+    exit 1
+fi
+
+
 export CAR_FILE_PATH="$1.car"
+
+# Check if the .car file exists and delete it
+if [ -f "$CAR_FILE_PATH" ]; then
+    rm "$CAR_FILE_PATH"
+fi
+
 car create --output $CAR_FILE_PATH --version 1 $1
 export HASH_OUT=$(cat $CAR_FILE_PATH | stream-commp 2>&1)
 

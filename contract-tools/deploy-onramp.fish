@@ -1,4 +1,4 @@
-set -g fish_trace 1
+#set -g fish_trace 1
 
 
 #Before calling set: 
@@ -8,6 +8,7 @@ set -g fish_trace 1
 #     XCHAIN_KEY_PATH,
 #     XCHAIN_PASSPHRASE,
 #     XCHAIN_ETH_API
+#     MINER_ADDRESS
 #   
 # Deploys contracts needed for onramp demo
 # Sets up config for data-client and xchain-connector
@@ -76,15 +77,15 @@ function deploy-onramp
 	echo "clientAddr: $clientAddr"
 	set filClientAddr (parse-filecoin-address (./lotus evm stat $clientAddr))
 	echo "filClientAddr: $filClientAddr"
-	set providerAddr (./lotus state list-miners | sed 1q) # for lotus devent there is only one miner
 
-	./lotus state wait-msg --timeout "2m" (./lotus send $filClientAddr 10000)
+	#./lotus state wait-msg --timeout "2m" (./lotus send $filClientAddr 20)
 	cd $ONRAMP_CODE_PATH
 	jq -c '.abi' out/OnRamp.sol/OnRampContract.json > ~/.xchain/onramp-abi.json
 
-	jo -a (jo -- ChainID=31415926 Api="$XCHAIN_ETH_API" -s OnRampAddress="$onrampAddr" \
+    # chain id and lotus api url is hard coded and will be a source of bugs when moved away from calibnet
+	jo -a (jo -- ChainID=314159 Api="$XCHAIN_ETH_API" -s OnRampAddress="$onrampAddr" \
 		KeyPath="$XCHAIN_KEY_PATH" ClientAddr="$clientAddr" OnRampABIPath=~/.xchain/onramp-abi.json \
-		BufferPath=~/.xchain/buffer BufferPort=5077 ProviderAddr="$providerAddr" \
+		BufferPath=~/.xchain/buffer BufferPort=5077 ProviderAddr="$MINER_ADDRESS" \
 		LotusAPI="http://localhost:1234" -s ProverAddr="$proverAddr" \
 		-s PayoutAddr="0x0C0FFEEC0FFEEC0FFEEC0FFEEC0FFEEC0FEECAFE") > ~/.xchain/config.json
 	echo "config written to ~/.xchain/config.json" 
@@ -131,25 +132,35 @@ function deploy-tokens
 
 	 ascii-five
 	 echo -e "~$0.05~$0.05~ 'NICKLE' ~$0.05~$0.05~\n"
-	 set nickleCreate (cast send --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API --create $bcNickle)
+	 set nickleCreate (cast send --gas-limit 10000000000 --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API --create $bcNickle)
+     sleep 1m
 	 string join \n $nickleCreate
 	 echo $nickleCreate[1..3]
 	 set nickleAddr (parse-address-cast-create $nickleCreate)
-	 cast send --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API $nickleAddr $approveCallData
+	 cast send --gas-limit 10000000000 --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API $nickleAddr $approveCallData
+     sleep 1m
 
 	 ascii-shell
 	 echo -e "~#!~#!~ 'SHELL' ~#!~#!~\n"	 
-	 set cowryCreate (cast send --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API --create $bcCowry)
+	 set cowryCreate (cast send --gas-limit 10000000000 --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API --create $bcCowry)
+     sleep 1m
+
      string join \n $cowryCreate
 	 set cowryAddr (parse-address-cast-create $cowryCreate)
-	 cast send --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API $cowryAddr $approveCallData
+
+	 cast send --gas-limit 10000000000 --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API $cowryAddr $approveCallData
+     sleep 1m
 
 	 ascii-union-jack	 
 	 echo -e "~#L~#L~ 'NEWTON' ~#L~#L~\n"
-	 set poundCreate (cast send --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API --create $bcPound) 
+	 set poundCreate (cast send --gas-limit 10000000000 --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API --create $bcPound) 
+     sleep 1m
+
 	 string join \n $poundCreate
 	 set poundAddr (parse-address-cast-create $poundCreate)
-	 cast send --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API $poundAddr $approveCallData
+	 cast send --gas-limit 10000000000 --keystore $XCHAIN_KEY_PATH --password "$XCHAIN_PASSPHRASE" --rpc-url $XCHAIN_ETH_API $poundAddr $approveCallData
+     sleep 1m
+
 end
 
 # Some ASCII logos to give our erc20s character
