@@ -1,5 +1,11 @@
 @zondax/solidity-bignumber=lib/filecoin-solidity/contracts/vendor/solidity-BigNumber
-filecoin-solidity/=/Users/zenground0/pl/repos/onramp-contracts/lib/filecoin-solidity/
+@axelar-network/axelar-gmp-sdk-solidity/=node_modules/@axelar-network/axelar-gmp-sdk-solidity/
+
+filecoin-solidity=lib/filecoin-solidity
+filecoin-solidity-api=node_modules/filecoin-solidity-api
+fevmate/=lib/ipc/extras/axelar-token/node_modules/fevmate/
+
+
 solidity-bignumber=lib/filecoin-solidity/contracts/vendor/solidity-BigNumber
 
-ipc-sdk=node_modules/ipc-sdk/contracts
+ipc-sdk=node_modules/ipc-sdk
