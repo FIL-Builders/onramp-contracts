@@ -29,11 +29,17 @@ const config: HardhatUserConfig = {
   networks: {
     calibration: {
       url: "https://api.calibration.node.glif.io/rpc/v1",
+      chainId: 314159,
       accounts: [deployerPrivateKey],
     },
     linea: {
       url: "https://rpc.sepolia.linea.build",
       chainId: 59141,
+      accounts: [deployerPrivateKey],
+    },
+    avalanceFuji: {
+      url: "https://api.avax-test.network/ext/bc/C/rpc",
+      chainId: 43113,
       accounts: [deployerPrivateKey],
     }
   }

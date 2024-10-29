@@ -21,6 +21,48 @@ import {IAxelarGasService} from "@axelar-network/axelar-gmp-sdk-solidity/contrac
 
 using CBOR for CBOR.CBORBuffer;
 
+
+struct RequestId {
+    bytes32 requestId;
+    bool valid;
+}
+
+struct RequestIdx {
+    uint256 idx;
+    bool valid;
+}
+
+struct ProviderSet {
+    bytes provider;
+    bool valid;
+}
+
+// User request for this contract to make a deal. This structure is modelled after Filecoin's Deal
+// Proposal, but leaves out the provider, since any provider can pick up a deal broadcast by this
+// contract.
+struct DealRequest {
+    bytes piece_cid;
+    uint64 piece_size;
+    bool verified_deal;
+    string label;
+    int64 start_epoch;
+    int64 end_epoch;
+    uint256 storage_price_per_epoch;
+    uint256 provider_collateral;
+    uint256 client_collateral;
+    uint64 extra_params_version;
+    ExtraParamsV1 extra_params;
+}
+
+// Extra parameters associated with the deal request. These are off-protocol flags that
+// the storage provider will need.
+struct ExtraParamsV1 {
+    string location_ref;
+    uint64 car_size;
+    bool skip_ipni_announce;
+    bool remove_unsealed_copy;
+}
+
 contract DealClientAxl is AxelarExecutable {
     using AccountCBOR for *;
     using MarketCBOR for *;
@@ -42,15 +84,24 @@ contract DealClientAxl is AxelarExecutable {
 
     enum Status {
         None,
+        RequestSubmitted,
         DealPublished,
         DealActivated,
         DealTerminated
     }
 
+    DealRequest[] public dealRequests;
+
+    mapping(bytes32 => RequestIdx) public dealRequestIdx; // contract deal id -> deal index
+    mapping(bytes => RequestId) public pieceRequests; // commP -> dealProposalID
+    mapping(bytes => ProviderSet) public pieceProviders; // commP -> provider
     mapping(bytes => uint64) public pieceDeals; // commP -> deal ID
     mapping(bytes => Status) public pieceStatus;
     mapping(bytes => uint256) public providerGasFunds; // Funds set aside for calling oracle by provider
     mapping(uint256 => DestinationChain) public chainIdToDestinationChain;
+
+    event ReceivedDataCap(string received);
+    event DealProposalCreate(bytes32 indexed id, uint64 size, bool indexed verified, uint256 price);
 
     constructor(
         address _gateway,
@@ -85,6 +136,87 @@ contract DealClientAxl is AxelarExecutable {
 
     function addGasFunds(bytes calldata providerAddrData) external payable {
         providerGasFunds[providerAddrData] += msg.value;
+    }
+
+    function makeDealProposal(DealRequest calldata deal) public returns (bytes32) {
+        if (
+            pieceStatus[deal.piece_cid] == Status.DealPublished ||
+            pieceStatus[deal.piece_cid] == Status.DealActivated
+        ) {
+            revert("deal with this pieceCid already published");
+        }
+
+        uint256 index = dealRequests.length;
+        dealRequests.push(deal);
+
+        // creates a unique ID for the deal proposal -- there are many ways to do this
+        bytes32 id = keccak256(abi.encodePacked(block.timestamp, msg.sender, index));
+        dealRequestIdx[id] = RequestIdx(index, true);
+
+        pieceRequests[deal.piece_cid] = RequestId(id, true);
+        pieceStatus[deal.piece_cid] = Status.RequestSubmitted;
+
+        // writes the proposal metadata to the event log
+        emit DealProposalCreate(
+            id,
+            deal.piece_size,
+            deal.verified_deal,
+            deal.storage_price_per_epoch
+        );
+
+        return id;
+    }
+
+    // authenticateMessage is the callback from the market actor into the contract
+    // as part of PublishStorageDeals. This message holds the deal proposal from the
+    // miner, which needs to be validated by the contract in accordance with the
+    // deal requests made and the contract's own policies
+    // @params - cbor byte array of AccountTypes.AuthenticateMessageParams
+    function authenticateMessage(bytes memory params) internal view {
+        require(msg.sender == MARKET_ACTOR_ETH_ADDRESS, "msg.sender needs to be market actor f05");
+
+        AccountTypes.AuthenticateMessageParams memory amp = params
+            .deserializeAuthenticateMessageParams();
+        MarketTypes.DealProposal memory proposal = MarketCBOR.deserializeDealProposal(amp.message);
+
+        bytes memory pieceCid = proposal.piece_cid.data;
+        require(pieceRequests[pieceCid].valid, "piece cid must be added before authorizing");
+        require(
+            !pieceProviders[pieceCid].valid,
+            "deal failed policy check: provider already claimed this cid"
+        );
+
+        DealRequest memory req = getDealRequest(pieceRequests[pieceCid].requestId);
+        require(proposal.verified_deal == req.verified_deal, "verified_deal param mismatch");
+        (uint256 proposalStoragePricePerEpoch, bool storagePriceConverted) = BigInts.toUint256(
+            proposal.storage_price_per_epoch
+        );
+        require(
+            !storagePriceConverted,
+            "Issues converting uint256 to BigInt, may not have accurate values"
+        );
+        (uint256 proposalClientCollateral, bool collateralConverted) = BigInts.toUint256(
+            proposal.client_collateral
+        );
+        require(
+            !collateralConverted,
+            "Issues converting uint256 to BigInt, may not have accurate values"
+        );
+        require(
+            proposalStoragePricePerEpoch <= req.storage_price_per_epoch,
+            "storage price greater than request amount"
+        );
+        require(
+            proposalClientCollateral <= req.client_collateral,
+            "client collateral greater than request amount"
+        );
+    }
+
+    // helper function to get deal request based from id
+    function getDealRequest(bytes32 requestId) internal view returns (DealRequest memory) {
+        RequestIdx memory ri = dealRequestIdx[requestId];
+        require(ri.valid, "proposalId not available");
+        return dealRequests[ri.idx];
     }
 
     // dealNotify is the callback from the market actor into the contract at the end

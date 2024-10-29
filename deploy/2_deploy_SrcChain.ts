@@ -15,7 +15,19 @@ const deployContractsOnSrcChain: DeployFunction = async function (
   const { deployer } = await hre.getNamedAccounts();
   console.log("Deploying with account:", deployer);
 
-  const axelarGatewayAddressLinea = "0xe432150cce91c13a887f7D836923d5597adD8E31";
+  let axelarGatewayAddress;
+  const networkName = hre.network.name;
+
+  if(networkName == "linea"){
+    axelarGatewayAddress= '0xe432150cce91c13a887f7D836923d5597adD8E31';
+  } else if(networkName == 'avalanceFuji'){
+    axelarGatewayAddress = '0xC249632c2D40b9001FE907806902f63038B737Ab';
+  } else {
+    console.error(
+      "Unsupported network. Use 'calibnet' for Filecoin, 'linea' for Linear, 'hedera' for Hedera, or 'flow' for Flow."
+    );
+    process.exit(1);
+  }
 
   const onramp =  await deploy("OnRampContract", {
     from: deployer,
@@ -28,7 +40,7 @@ const deployContractsOnSrcChain: DeployFunction = async function (
 
   const oracle =  await deploy("AxelarBridge", {
     from: deployer,
-    args: [axelarGatewayAddressLinea],
+    args: [axelarGatewayAddress],
     log: true,
     waitConfirmations: 2,
   });
