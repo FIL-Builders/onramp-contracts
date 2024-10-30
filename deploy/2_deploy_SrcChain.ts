@@ -21,6 +21,7 @@ const deployContractsOnSrcChain: DeployFunction = async function (
     from: deployer,
     args: [],
     log: true,
+    waitConfirmations: 2,
   });
   const onrampAddress = onramp.address;
   console.log("🚀 OnRamp Contract Deployed at: ", onrampAddress);
@@ -29,6 +30,7 @@ const deployContractsOnSrcChain: DeployFunction = async function (
     from: deployer,
     args: [axelarGatewayAddressLinea],
     log: true,
+    waitConfirmations: 2,
   });
   const oracleAddress = oracle.address;
   console.log("🚀 Oracle Contract Deployed at: ", oracleAddress);

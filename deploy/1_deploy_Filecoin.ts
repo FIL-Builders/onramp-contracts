@@ -22,6 +22,7 @@ const deployContractOnFilecoin: DeployFunction = async function (
     from: deployer,
     args: [axelarGatewayAddressFilecoin, axelarGasReceiverFilecoin],
     log: true,
+    waitConfirmations: 2,
   });
   const proverAddress = prover.address;
   console.log("🚀 Prover_Axelar Contract Deployed at: ", proverAddress);
