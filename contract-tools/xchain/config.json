@@ -1,0 +1,17 @@
+[
+    {
+      "ChainID": 31415926,
+      "Api": "wss://arb-sepolia.g.alchemy.com/v2/H11CQGnQfpZLzYtE2km9hqooZg42HIBt",
+      "OnRampAddress": "0x87722093698eCc81cdA3e65cDdE07a3eB91D9df8",
+      "ProverAddr": "0xBDf1111604FE9464fc584e7df8F2E3117144BB5a",
+      "KeyPath": " /Users/longfeiwang/Documents/GitHub/Fil-Builders/onramp-contracts/contract-tools/xchain/key.json",
+      "ClientAddr": "0x5C31e78F3F7329769734f5FF1ac7e22c243e817e",
+      "PayoutAddr": "0x5C31e78F3F7329769734f5FF1ac7e22c243e817e",
+      "OnRampABIPath": "/Users/longfeiwang/Documents/GitHub/Fil-Builders/onramp-contracts/contract-tools/xchain/onramp-abi.json",
+      "BufferPath": "~/.xchain/buffer",
+      "BufferPort": 5077,
+      "ProviderAddr": "t0116147",
+      "LotusAPI": "https://api.calibration.node.glif.io/rpc/v1",
+      "LighthouseApiKey": ""
+    }
+  ]

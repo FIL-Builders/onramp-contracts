@@ -62,7 +62,7 @@ func main() {
 			&cli.StringFlag{
 				Name:  "config",
 				Usage: "Path to the configuration file",
-				Value: "~/.xchain/config.json",
+				Value: "./config.json",
 			},
 		},
 		Commands: []*cli.Command{
