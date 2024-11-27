@@ -1,0 +1,39 @@
+{
+  "name": "onramp_contract",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/hardhat",
+      "packages/nextjs"
+    ]
+  },
+  "scripts": {
+    "account": "yarn workspace @onramp_contract/hardhat account",
+    "compile": "yarn workspace @onramp_contract/hardhat compile",
+    "fork": "yarn workspace @onramp_contract/hardhat fork",
+    "generate": "yarn workspace @onramp_contract/hardhat run scripts/generateAccount.ts",
+    "flatten": "yarn workspace @onramp_contract/hardhat flatten",
+    "next:lint": "yarn workspace @onramp_contract/hardhat eslint --config ./.eslintrc.json --ignore-path ./.eslintignore ./*.ts ./deploy/**/*.ts ./scripts/**/*.ts ./test/**/*.ts",
+    "next:check-types": "yarn workspace @onramp_contract/nextjs check-types",
+    "lint-staged": "yarn workspace @onramp_contract/hardhat eslint --config ./.eslintrc.json --ignore-path ./.eslintignore",
+    "format": "yarn workspace @fil-frame/hardhat prettier --write ./*.ts ./deploy/**/*.ts ./scripts/**/*.ts ./test/**/*.ts",
+    "verify": "yarn workspace @onramp_contract/hardhat etherscan-verify",
+    "hardhat-verify": "yarn workspace @onramp_contract/hardhat verify",
+    "hardhat:lint": "yarn workspace @onramp_contract/hardhat lint",
+    "deploy": "yarn workspace @onramp_contract/hardhat deploy",
+    "deploy:verify": "yarn workspace @onramp_contract/hardhat deploy:verify",
+    "chain": "yarn workspace @onramp_contract/hardhat chain",
+    "test": "yarn workspace @onramp_contract/hardhat test",
+    "dev": "yarn workspace @onramp_contract/nextjs dev",
+    "build": "yarn workspace @onramp_contract/nextjs build",
+    "start": "yarn workspace @onramp_contract/nextjs start"
+  },
+  "devDependencies": {
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}
