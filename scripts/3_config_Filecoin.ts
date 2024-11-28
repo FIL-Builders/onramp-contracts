@@ -5,12 +5,12 @@ dotenv.config();
 
 async function main() {
   const proverAddressFilecoin = process.env.PROVER_CONTRACT_ADDRESS_DEST_CHAIN;
-  const oracleAddressLinea = process.env.ORACLE_CONTRACT_ADDRESS_SRC_CHAIN; 
+  const oracleAddressSource = process.env.ORACLE_CONTRACT_ADDRESS_SRC_CHAIN; 
 
   console.log("***** Start wiring Oracle Contract on Filecoin *****");
   // Get the deployed contract instance by name
   const proverContract = await ethers.getContractAt("DealClientAxl", proverAddressFilecoin);
-  const setProverTx = await proverContract.setDestinationChains([59141],['linea'],[oracleAddressLinea]);
+  const setProverTx = await proverContract.setSourceChains([314159],['filecoin-2'],[oracleAddressSource]);
   
   // Wait for the transaction to be mined
   console.log("~*~*~ Connect Oracle to ProverContract at:", setProverTx.hash);

@@ -35,9 +35,9 @@ contract DealClientAxl is AxelarExecutable {
         address(0xfF00000000000000000000000000000000000007);
     uint256 public constant AXELAR_GAS_FEE = 100000000000000000; // Start with 0.1 FIL
 
-    struct DestinationChain {
+    struct SourceChain {
         string chainName;
-        address destinationAddress;
+        address oracleContractAddress;
     }
 
     enum Status {
@@ -50,7 +50,7 @@ contract DealClientAxl is AxelarExecutable {
     mapping(bytes => uint64) public pieceDeals; // commP -> deal ID
     mapping(bytes => Status) public pieceStatus;
     mapping(bytes => uint256) public providerGasFunds; // Funds set aside for calling oracle by provider
-    mapping(uint256 => DestinationChain) public chainIdToDestinationChain;
+    mapping(uint256 => SourceChain) public chainIdToSrcChain;
 
     constructor(
         address _gateway,
@@ -59,26 +59,24 @@ contract DealClientAxl is AxelarExecutable {
         gasService = IAxelarGasService(_gasReceiver);
     }
 
-    function setDestinationChains(
-        uint[] calldata chainIds,
-        string[] calldata destinationChains,
-        address[] calldata destinationAddresses
+    function setSourceChains(
+        uint[] calldata srcChainIds,
+        string[] calldata srcChainNames,
+        address[] calldata srcOracleAddresses
     ) external {
         require(
-            chainIds.length == destinationChains.length &&
-                destinationChains.length == destinationAddresses.length,
+            srcChainIds.length == srcChainNames.length &&
+                srcChainNames.length == srcOracleAddresses.length,
             "Input arrays must have the same length"
         );
 
-        for (uint i = 0; i < chainIds.length; i++) {
-            require(
-                chainIdToDestinationChain[chainIds[i]].destinationAddress ==
-                    address(0),
+        for (uint i = 0; i < srcChainIds.length; i++) {
+            require(chainIdToSrcChain[srcChainIds[i]].oracleContractAddress == address(0),
                 "Destination chains already configured for the chainId"
             );
-            chainIdToDestinationChain[chainIds[i]] = DestinationChain(
-                destinationChains[i],
-                destinationAddresses[i]
+            chainIdToSrcChain[srcChainIds[i]] = SourceChain(
+                srcChainNames[i],
+                srcOracleAddresses[i]
             );
         }
     }
@@ -119,9 +117,9 @@ contract DealClientAxl is AxelarExecutable {
         bytes memory payload = abi.encode(attest);
         if (chainId == block.chainid) {
             IBridgeContract(
-                chainIdToDestinationChain[chainId].destinationAddress
+                chainIdToSrcChain[chainId].oracleContractAddress
             )._execute(
-                    chainIdToDestinationChain[chainId].chainName,
+                    chainIdToSrcChain[chainId].chainName,
                     addressToHexString(address(this)),
                     payload
                 );
@@ -150,10 +148,10 @@ contract DealClientAxl is AxelarExecutable {
             gasFunds = providerGasFunds[providerAddrData];
             providerGasFunds[providerAddrData] = 0;
         }
-        string memory destinationChain = chainIdToDestinationChain[chainId]
+        string memory destinationChain = chainIdToSrcChain[chainId]
             .chainName;
         string memory destinationAddress = addressToHexString(
-            chainIdToDestinationChain[chainId].destinationAddress
+            chainIdToSrcChain[chainId].oracleContractAddress
         );
         gasService.payNativeGasForContractCall{value: gasFunds}(
             address(this),
@@ -188,9 +186,9 @@ contract DealClientAxl is AxelarExecutable {
         bytes memory payload = abi.encode(attest);
         if (chainId == block.chainid) {
             IBridgeContract(
-                chainIdToDestinationChain[chainId].destinationAddress
+                chainIdToSrcChain[chainId].oracleContractAddress
             )._execute(
-                    chainIdToDestinationChain[chainId].chainName,
+                    chainIdToSrcChain[chainId].chainName,
                     addressToHexString(address(this)),
                     payload
                 );
