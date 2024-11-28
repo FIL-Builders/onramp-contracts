@@ -19,12 +19,18 @@
   },
   "dependencies": {
     "dotenv": "^16.0.3",
+    "hardhat-gas-reporter": "^2.2.2",
+    "solidity-coverage": "^0.8.14",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@axelar-network/axelar-gmp-sdk-solidity": "^6.0.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-foundry": "^1.0.2-dev.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.12",
     "@openzeppelin/contracts": "^5.1.0",
     "@typechain/ethers-v6": "^0.5.0",
     "@typechain/hardhat": "^9.0.0",
