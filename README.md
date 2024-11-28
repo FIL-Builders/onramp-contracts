@@ -11,11 +11,10 @@ The following diagram shows the workflow of data onramp running on other L1/L2 (
 The data onramp project port Filecoin storage capacity to any other blockchain using smart contracts. To achieve this cross-chain storage solution, we need to deploy a set of contracts on Filecoin and any other L1/L2 source chain. 
 
 Overal, contracts should be deployed on the source chain and Filecoin are listed as below.
-- Source Chain
-    - OnRampContract from `Onramp.sol`
-    - AxelarBridge from `Oracle.sol`
 - Filecoin
     - DealClientAxl from `Prover-Axelar.sol`
+    - OnRampContract from `Onramp.sol`
+    - ForwardingProofMockBridge from `Oracle.sol`
 
 We will use hardhat to deploy contracts on both Filecoin & Linea. 
 1. clone this repo & install all dependencies
@@ -37,7 +36,7 @@ We will use hardhat to deploy contracts on both Filecoin & Linea.
     ```
 1. deploy OnRampContract & AxelarBridge to the Linea network. Make sure you have test token LineaETH in your wallet.
     ```
-    npx hardhat deploy --tags SoureChain --network linea
+    npx hardhat deploy --tags SoureChain --network calibration
     ```
 1. After the contracts are successfully deploy on both networks. You need to add three smart contracts address in `.env` for the following configuration.
     ```
