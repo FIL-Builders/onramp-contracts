@@ -62,7 +62,7 @@ func main() {
 			&cli.StringFlag{
 				Name:  "config",
 				Usage: "Path to the configuration file",
-				Value: "~/.xchain/config.json",
+				Value: "./config/config.json",
 			},
 		},
 		Commands: []*cli.Command{
@@ -84,9 +84,9 @@ func main() {
 				Action: func(cctx *cli.Context) error {
 					isBuffer := cctx.Bool("buffer-service")
 					isAgg := cctx.Bool("aggregation-service")
-					if !isBuffer && !isAgg { // default to running aggregator
-						isAgg = true
-					}
+					// if !isBuffer && !isAgg { // default to running aggregator
+					// 	isAgg = true
+					// }
 
 					cfg, err := LoadConfig(cctx.String("config"))
 					if err != nil {
@@ -94,6 +94,8 @@ func main() {
 					}
 
 					g, ctx := errgroup.WithContext(cctx.Context)
+					fmt.Println("buffer-service is ", isBuffer)
+					fmt.Println("aggregation-service is ", isAgg)
 					g.Go(func() error {
 						if !isBuffer {
 							return nil
@@ -207,6 +209,73 @@ func main() {
 							return nil
 						},
 					},
+					{
+						Name:      "dealStatus",
+						Usage:     "Check deal status for a specific CID",
+						ArgsUsage: "<cid>",
+						Action: func(cctx *cli.Context) error {
+							cfg, err := LoadConfig(cctx.String("config"))
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							cid := cctx.Args().First()
+							if cid == "" {
+								log.Printf("Please provide a CID to check deal status")
+								return nil
+							}
+
+							//Request deal status from Lighthouse Deal Engine
+							proof, deal, err := getDealStatus(cid, cfg.LighthouseDEAuth)
+							if err != nil {
+								log.Fatalf("Error in GET request: %v", err)
+							}
+							// Print or log the response body
+							log.Printf("PoDSI Proof: %s", proof)
+							log.Printf("Filecoin Deal: %s", deal)
+
+							// Log the end of the process
+							log.Println("Process completed successfully.")
+
+							// Dial network
+							// client, err := ethclient.Dial(cfg.Api)
+							// if err != nil {
+							// 	log.Fatal(err)
+							// }
+
+							// Load onramp contract handle
+							// contractAddress := common.HexToAddress(cfg.OnRampAddress)
+							// parsedABI, err := LoadAbi(cfg.OnRampABIPath)
+							// if err != nil {
+							// 	log.Fatal(err)
+							// }
+							// onramp := bind.NewBoundContract(contractAddress, *parsedABI, client, client, client)
+							// if err != nil {
+							// 	log.Fatal(err)
+							// }
+
+							// // Get auth
+							// auth, err := loadPrivateKey(cfg)
+							// if err != nil {
+							// 	log.Fatal(err)
+							// }
+
+							// // Send Tx
+							// tx, err := onramp.Transact(auth, "offerData", offer)
+							// if err != nil {
+							// 	log.Fatalf("failed to send tx: %v", err)
+							// }
+
+							// log.Printf("Waiting for transaction: %s\n", tx.Hash().Hex())
+							// receipt, err := bind.WaitMined(cctx.Context, client, tx)
+							// if err != nil {
+							// 	log.Fatalf("failed to wait for tx: %v", err)
+							// }
+							// log.Printf("Tx %s included: %d", tx.Hash().Hex(), receipt.Status)
+
+							return nil
+						},
+					},
 				},
 			},
 		},
@@ -226,21 +295,22 @@ func main() {
 }
 
 type Config struct {
-	ChainID       int
-	Api           string
-	OnRampAddress string
-	ProverAddr    string
-	KeyPath       string
-	ClientAddr    string
-	PayoutAddr    string
-	OnRampABIPath string
-	BufferPath    string
-	BufferPort    int
-	TransferIP    string
-	TransferPort  int
-	ProviderAddr  string
-	LotusAPI      string
-	TargetAggSize int
+	ChainID          int
+	Api              string
+	OnRampAddress    string
+	ProverAddr       string
+	KeyPath          string
+	ClientAddr       string
+	PayoutAddr       string
+	OnRampABIPath    string
+	BufferPath       string
+	BufferPort       int
+	TransferIP       string
+	TransferPort     int
+	ProviderAddr     string
+	LotusAPI         string
+	TargetAggSize    int
+	LighthouseDEAuth string
 }
 
 // Mirror OnRamp.sol's `Offer` struct
@@ -440,10 +510,15 @@ func (a *aggregator) run(ctx context.Context) error {
 		return err
 	})
 
-	// Start aggregatation event handling
+	// Start Lighthouse Deal Engine listener
 	g.Go(func() error {
-		return a.runAggregate(ctx)
+		return a.sendingToLighthouseDe(ctx)
 	})
+
+	// Start aggregatation event handling
+	// g.Go(func() error {
+	// 	return a.runAggregate(ctx)
+	// })
 
 	// Start handling data transfer requests
 	g.Go(func() error {
@@ -490,9 +565,31 @@ const (
 	dealDuration = 518400 // 6 months (on mainnet)
 )
 
+// No aggregation required, just sending cid to Lighthouse Deal Engine.
+func (a *aggregator) sendingToLighthouseDe(ctx context.Context) error {
+	log.Println("Sending files to Lighthouse Deal Engine.")
+	log.Println("Events count = ", len(a.ch))
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Printf("ctx done shutting down Lighthouse Event Listener")
+			return nil
+		case latestEvent := <-a.ch:
+			log.Println("Processing Offer ", latestEvent.OfferID)
+
+			// Check if the offer is too big to fit in a valid aggregate on its own
+			cid := "QmeunfBSvUwcocnnjxfNy1DVAcGCK9iyJNCYBrSidxr6ue"
+			authToken := "u8t8gf6ds06re"
+			sendToLighthouseDE(cid, authToken)
+		}
+	}
+}
+
 func (a *aggregator) runAggregate(ctx context.Context) error {
 	// pieces being aggregated, flushed upon commitment
 	// Invariant: the pieces in the pending queue can always make a valid aggregate w.r.t a.targetDealSize
+	fmt.Println("Start running aggregation.")
 	pending := make([]DataReadyEvent, 0, 256)
 	total := uint64(0)
 	prefixPiece := filabi.PieceInfo{
@@ -842,6 +939,11 @@ func (a *aggregator) SubscribeQuery(ctx context.Context, query ethereum.FilterQu
 		return err
 	}
 	defer sub.Unsubscribe()
+
+	// Map to track processed OfferIDs
+	processed := make(map[uint64]struct{})
+	// Mutex for thread safety
+	var mu sync.Mutex
 LOOP:
 	for {
 		select {
@@ -850,14 +952,25 @@ LOOP:
 		case err := <-sub.Err():
 			return err
 		case vLog := <-logs:
+			log.Println("Receive a DataReady() event.")
 			event, err := parseDataReadyEvent(vLog, a.abi)
 			if err != nil {
 				return err
 			}
 
-			log.Printf("Sending offer %d for aggregation\n", event.OfferID)
+			// Deduplication logic with mutex
+			mu.Lock()
+			if _, exists := processed[event.OfferID]; exists {
+				mu.Unlock() // Unlock and continue if duplicate
+				log.Printf("Duplicate event ignored: Offer NO. %d\n", event.OfferID)
+				continue
+			}
+			processed[event.OfferID] = struct{}{}
+			mu.Unlock()
+
+			log.Printf("Sending offer NO. %d for aggregation\n", event.OfferID)
 			log.Printf("  Offer:\n")
-			log.Printf("    CommP: %v\n", event.Offer.CommP)
+			log.Printf("    CommP: %v\n", string(event.Offer.CommP))
 			log.Printf("    Size: %d\n", event.Offer.Size)
 			log.Printf("    Location: %s\n", event.Offer.Location)
 			log.Printf("    Amount: %s\n", event.Offer.Amount.String()) // big.Int needs .String() for printing
