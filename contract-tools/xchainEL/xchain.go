@@ -219,59 +219,63 @@ func main() {
 								log.Fatal(err)
 							}
 
-							cid := cctx.Args().First()
-							if cid == "" {
+							cidString := cctx.Args().First()
+							if cidString == "" {
 								log.Printf("Please provide a CID to check deal status")
 								return nil
 							}
 
 							//Request deal status from Lighthouse Deal Engine
-							proof, deal, err := getDealStatus(cid, cfg.LighthouseDEAuth)
+							proofResponse, err := getDealStatus(cidString, cfg.LighthouseAuth)
 							if err != nil {
 								log.Fatalf("Error in GET request: %v", err)
 							}
-							// Print or log the response body
-							log.Printf("PoDSI Proof: %s", proof)
-							log.Printf("Filecoin Deal: %s", deal)
-
-							// Log the end of the process
-							log.Println("Process completed successfully.")
+							commP, proofSubtree, err := ExtractProofDetail(proofResponse.Proof)
+							if err != nil {
+								fmt.Println("Error:", err)
+								return nil
+							}
 
 							// Dial network
-							// client, err := ethclient.Dial(cfg.Api)
-							// if err != nil {
-							// 	log.Fatal(err)
-							// }
+							client, err := ethclient.Dial(cfg.Api)
+							if err != nil {
+								log.Fatal(err)
+							}
 
 							// Load onramp contract handle
-							// contractAddress := common.HexToAddress(cfg.OnRampAddress)
-							// parsedABI, err := LoadAbi(cfg.OnRampABIPath)
-							// if err != nil {
-							// 	log.Fatal(err)
-							// }
-							// onramp := bind.NewBoundContract(contractAddress, *parsedABI, client, client, client)
-							// if err != nil {
-							// 	log.Fatal(err)
-							// }
+							contractAddress := common.HexToAddress(cfg.OnRampAddress)
+							parsedABI, err := LoadAbi(cfg.OnRampABIPath)
+							if err != nil {
+								log.Fatal(err)
+							}
 
-							// // Get auth
-							// auth, err := loadPrivateKey(cfg)
-							// if err != nil {
-							// 	log.Fatal(err)
-							// }
+							onramp := bind.NewBoundContract(contractAddress, *parsedABI, client, client, client)
+							if err != nil {
+								log.Fatal(err)
+							}
 
-							// // Send Tx
-							// tx, err := onramp.Transact(auth, "offerData", offer)
-							// if err != nil {
-							// 	log.Fatalf("failed to send tx: %v", err)
-							// }
+							// Get auth
+							auth, err := loadPrivateKey(cfg)
+							if err != nil {
+								log.Fatal(err)
+							}
 
-							// log.Printf("Waiting for transaction: %s\n", tx.Hash().Hex())
-							// receipt, err := bind.WaitMined(cctx.Context, client, tx)
-							// if err != nil {
-							// 	log.Fatalf("failed to wait for tx: %v", err)
-							// }
-							// log.Printf("Tx %s included: %d", tx.Hash().Hex(), receipt.Status)
+							inclProofs := make([]merkletree.ProofData, 1)
+							ids := make([]uint64, 1)
+							ids[0] = 10
+							inclProofs[0] = proofSubtree
+
+							tx, err := onramp.Transact(auth, "commitAggregate", commP.Bytes(), ids, inclProofs, common.HexToAddress(cfg.PayoutAddr))
+							if err != nil {
+								return err
+							}
+
+							log.Printf("Waiting for transaction: %s\n", tx.Hash().Hex())
+							receipt, err := bind.WaitMined(cctx.Context, client, tx)
+							if err != nil {
+								log.Fatalf("failed to wait for tx: %v", err)
+							}
+							log.Printf("Tx %s committing aggregate commp %s included: %d", tx.Hash().Hex(), commP.String(), receipt.Status)
 
 							return nil
 						},
@@ -295,22 +299,22 @@ func main() {
 }
 
 type Config struct {
-	ChainID          int
-	Api              string
-	OnRampAddress    string
-	ProverAddr       string
-	KeyPath          string
-	ClientAddr       string
-	PayoutAddr       string
-	OnRampABIPath    string
-	BufferPath       string
-	BufferPort       int
-	TransferIP       string
-	TransferPort     int
-	ProviderAddr     string
-	LotusAPI         string
-	TargetAggSize    int
-	LighthouseDEAuth string
+	ChainID        int
+	Api            string
+	OnRampAddress  string
+	ProverAddr     string
+	KeyPath        string
+	ClientAddr     string
+	PayoutAddr     string
+	OnRampABIPath  string
+	BufferPath     string
+	BufferPort     int
+	TransferIP     string
+	TransferPort   int
+	ProviderAddr   string
+	LotusAPI       string
+	TargetAggSize  int
+	LighthouseAuth string
 }
 
 // Mirror OnRamp.sol's `Offer` struct
@@ -355,6 +359,7 @@ type aggregator struct {
 	spDealAddr     *peer.AddrInfo            // address to reach boost (or other) deal v 1.2 provider
 	spActorAddr    address.Address           // address of the storage provider actor
 	lotusAPI       v0api.FullNode            // Lotus API for determining deal start epoch and collateral bounds
+	LighthouseAuth string                    // Auth token to interact with Lighthouse Deal Engine
 	cleanup        func()                    // cleanup function to call on shutdown
 }
 
@@ -473,6 +478,7 @@ func NewAggregator(ctx context.Context, cfg *Config) (*aggregator, error) {
 		spDealAddr:     psPeerInfo,
 		spActorAddr:    providerAddr,
 		lotusAPI:       lAPI,
+		LighthouseAuth: cfg.LighthouseAuth,
 		cleanup: func() {
 			closer()
 			log.Printf("done with lotus api closer\n")
@@ -580,10 +586,26 @@ func (a *aggregator) sendingToLighthouseDe(ctx context.Context) error {
 
 			// Check if the offer is too big to fit in a valid aggregate on its own
 			cid := "QmeunfBSvUwcocnnjxfNy1DVAcGCK9iyJNCYBrSidxr6ue"
-			authToken := "u8t8gf6ds06re"
-			sendToLighthouseDE(cid, authToken)
+			sendToLighthouseDE(cid, a.LighthouseAuth)
 		}
 	}
+}
+
+// Request Deal Status from Lighthouse Engine and send PoDSI to onramp contract
+func processDealStatus(ctx context.Context, cfg *Config, cid string) error {
+	//Request deal status from Lighthouse Deal Engine
+	proofResponse, err := getDealStatus(cid, cfg.LighthouseAuth)
+	if err != nil {
+		log.Fatalf("Error in GET request: %v", err)
+	}
+	// Print or log the response body
+	log.Printf("PoDSI Proof: %s", proofResponse.Proof)
+	log.Printf("Filecoin Deal: %s", proofResponse.FilecoinDeals)
+
+	// Log the end of the process
+	log.Println("Process completed successfully.")
+
+	return nil
 }
 
 func (a *aggregator) runAggregate(ctx context.Context) error {
