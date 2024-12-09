@@ -63,4 +63,4 @@ export default deployContractsOnSrcChain;
 
 // Tags are useful if you have multiple deploy files and only want to run one of them.
 // e.g. yarn deploy --tags OnRampSource
-deployContractsOnSrcChain.tags = ["SoureChain"];
+deployContractsOnSrcChain.tags = ["SourceChain"];
