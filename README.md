@@ -23,7 +23,7 @@ We will use hardhat to deploy contracts on both Filecoin & Linea.
     git clone https://github.com/FIL-Builders/onramp-contracts.git
 
     cd onramp-contracts
-    npm intall --force
+    npm install --force
     ```
 1. re-name `.env.example` to `.env` and add the private key of the deployer wallet.
 1. make sure the chain configs are correct in `hardhat.config.ts`. If the your desired chain config is missing, you will need to add it in the `hardhat.config.ts`.
