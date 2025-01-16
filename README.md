@@ -2,7 +2,7 @@
 
 Empowering developers to build dApps that write data from different blockchain to the filecoin network.
 
-The following diagram shows the workflow of data onramp running on other L1/L2 (we are using Linea as an example). 
+This branch is experimenting LightHouse & data onramp integration on the Filecoin network only.
 
 
 ## Installation
@@ -10,13 +10,13 @@ The following diagram shows the workflow of data onramp running on other L1/L2 (
 ### Deploying smart contracts with Hardhat
 The data onramp project port Filecoin storage capacity to any other blockchain using smart contracts. To achieve this cross-chain storage solution, we need to deploy a set of contracts on Filecoin and any other L1/L2 source chain. 
 
-Overal, contracts should be deployed on the source chain and Filecoin are listed as below.
+In this branch, we are using Filecoin calibration only. Therefore, contracts should be deployed on Filecoin are listed as below.
 - Filecoin
     - DealClientAxl from `Prover-Axelar.sol`
     - OnRampContract from `Onramp.sol`
     - ForwardingProofMockBridge from `Oracle.sol`
 
-We will use hardhat to deploy contracts on both Filecoin & Linea. 
+We will use hardhat to deploy contracts on both Filecoin calibration. 
 1. clone this repo & install all dependencies
     ```
     git clone https://github.com/FIL-Builders/onramp-contracts.git
@@ -30,11 +30,11 @@ We will use hardhat to deploy contracts on both Filecoin & Linea.
     ```
     npx hardhat compile
     ```
-1. deploy DealClientAxl contract to the Filecoin network. Ensure you have enought tFIL to cover the gas fee for smart contract deployment in your wallet.
+1. deploy `DealClientAxl` contract to the Filecoin Calibration network. Ensure you have enought tFIL to cover the gas fee for smart contract deployment in your wallet.
     ```
     npx hardhat deploy --tags Filecoin --network calibration
     ```
-1. deploy OnRampContract & AxelarBridge to the Linea network. Make sure you have test token LineaETH in your wallet.
+1. deploy `OnRampContract` & `AxelarBridge` to the Filecoin Calibration network as well. Make sure you have test token tFIL in your wallet.
     ```
     npx hardhat deploy --tags SoureChain --network calibration
     ```
@@ -46,15 +46,15 @@ We will use hardhat to deploy contracts on both Filecoin & Linea.
     ORACLE_CONTRACT_ADDRESS_SRC_CHAIN=
     ```
 1. Wire those contracts together to process cross-chain calls. 
-    - **On Filecoin**: setting up the supported source chains. 
+    - **On Filecoin Calibration**: setting up the supported source chains. 
         ```
         npx hardhat run scripts/3_config_Filecoin.ts --network calibration
         ```
-    - **On source chain**: connecting Oracle & Onramp contracts; Then config crosss-chain messages sender and receiver so Oracle contracts knows how to process cross-chain calls.
+    - **On source chain (also calibration in this case)**: connecting Oracle & Onramp contracts; Then config crosss-chain messages sender and receiver so Oracle contracts knows how to process cross-chain calls.
         ```
         npx hardhat run scripts/4_config_Srcchain.ts --network calibration
         ```
-Once you finished the above steps, you have deployed a set of onramp contracts to support cross-chain storage process from Linea to Filecoin.
+Once you finished the above steps, you have deployed a set of onramp contracts to support onchain storage onramp process from on the Filecoin Calibration.
 ### Setting up projects
 1. `forge install`
 1. set up gvm and use go 1.22.7 `gvm install go1.22.7; gvm use go1.22.7`
@@ -74,7 +74,7 @@ Once you finished the above steps, you have deployed a set of onramp contracts t
     export BOOST_EXEC_PATH=$(pwd)/../../filecoin-project/boost
     export XCHAIN_KEY_PATH=/home/mikers/dev/snissn/onramp-contracts/xchain_key.json/UTC--2024-10-01T21-31-48.090887441Z--1d0aa8533534a9da983469bae2de09eb86ee65fa
     export XCHAIN_PASSPHRASE=password
-    export XCHAIN_ETH_API="http://127.0.0.1:1234/rpc/v1"
+    export XCHAIN_ETH_API="https://api.calibration.node.glif.io/rpc/v1"
     export MINER_ADDRESS=t01013
     ```
 
@@ -84,7 +84,7 @@ This should create a config written to ~/.xchain/config.json
 
 set environment variables like above but change
 ```
-export XCHAIN_ETH_API="ws://127.0.0.1:1234/rpc/v1"
+export XCHAIN_ETH_API="wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v1"
 update xhcain config with ws url
 ```
 
@@ -108,12 +108,3 @@ Build and run xchain client:
     ```
     /onramp-contracts/contract-tools$ ./client.bash screenshot.png 0xaEE9C9E8E4b40665338BD8374D8D473Bd014D1A1 1
     ```
-
-
-
-
-## Shashank notes
-
-https://gist.github.com/lordshashank/fb2fbd53b5520a862bd451e3603b4718
-
-https://github.com/lordshashank/filecoin-deals       
