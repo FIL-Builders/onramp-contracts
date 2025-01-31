@@ -94,6 +94,9 @@ contract OnRampContract is PODSIVerifier {
     mapping(uint64 => address) public aggregationPayout;
     mapping(uint64 => bool) public provenAggregations;
     mapping(bytes => uint64) public commPToAggregateID;
+    mapping(address => uint64[]) private clientOffers;
+    mapping(uint64 => bool) public isOfferAggregated;
+    mapping(uint64 => uint64) private offerToAggregationId;
 
     function setOracle(address oracle_) external {
         if (dataProofOracle == address(0)) {
@@ -111,9 +114,71 @@ contract OnRampContract is PODSIVerifier {
 
         uint64 id = nextOfferId++;
         offers[id] = offer;
+        clientOffers[msg.sender].push(id);
 
         emit DataReady(offer, id);
         return id;
+    }
+
+    function getClientOffers(address client) external view returns (uint64[] memory) {
+        return clientOffers[client];
+    }
+
+    function getPendingOffers() external view returns (uint64[] memory) {
+        uint64[] memory pending = new uint64[](nextOfferId - 1);
+        uint64 count = 0;
+        
+        for (uint64 i = 1; i < nextOfferId; i++) {
+            if (!isOfferAggregated[i]) {
+                pending[count] = i;
+                count++;
+            }
+        }
+        
+        assembly {
+            mstore(pending, count)
+        }
+        return pending;
+    }
+
+    function getTotalOffers() external view returns (uint64) {
+        return nextOfferId - 1;
+    }
+
+    function getOfferDetails(uint64 offerId) external view returns (
+        bytes memory commP,
+        uint64 size,
+        string memory location,
+        uint256 amount,
+        IERC20 token,
+        bool exists
+    ) {
+        Offer storage offer = offers[offerId];
+        exists = offer.amount != 0;
+        if (exists) {
+            return (
+                offer.commP,
+                offer.size,
+                offer.location,
+                offer.amount,
+                offer.token,
+                true
+            );
+        }
+    }
+
+    function getOfferStatus(uint64 offerId) external view returns (
+        bool exists,
+        bool isAggregated,
+        bool isProven
+    ) {
+        exists = offers[offerId].amount != 0;
+        isAggregated = isOfferAggregated[offerId];
+        
+        if (isAggregated) {
+            uint64 aggId = offerToAggregationId[offerId];
+            isProven = provenAggregations[aggId];
+        }
     }
 
     function commitAggregate(
@@ -136,10 +201,26 @@ contract OnRampContract is PODSIVerifier {
                 ),
                 "Proof verification failed"
             );
+            isOfferAggregated[offerID] = true;
+            offerToAggregationId[offerID] = aggId;
         }
         aggregations[aggId] = offerIDs;
         aggregationPayout[aggId] = payoutAddr;
         commPToAggregateID[aggregate] = aggId;
+    }
+
+    function getAggregationDetails(uint64 aggId) external view returns (
+        address payoutAddress,
+        bool isProven,
+        uint64 offerCount
+    ) {
+        payoutAddress = aggregationPayout[aggId];
+        isProven = provenAggregations[aggId];
+        offerCount = uint64(aggregations[aggId].length);
+    }
+
+    function getAggregationOffers(uint64 aggId) external view returns (uint64[] memory) {
+        return aggregations[aggId];
     }
 
     function verifyDataStored(
