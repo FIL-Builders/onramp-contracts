@@ -18,14 +18,15 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {AxelarExecutable} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
 import {IAxelarGateway} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGateway.sol";
 import {IAxelarGasService} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGasService.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 using CBOR for CBOR.CBORBuffer;
 
-contract DealClientAxl is AxelarExecutable {
+contract DealClientAxl is AxelarExecutable, Initializable {
     using AccountCBOR for *;
     using MarketCBOR for *;
 
-    IAxelarGasService public immutable gasService;
+    IAxelarGasService public gasService;
     uint64 public constant AUTHENTICATE_MESSAGE_METHOD_NUM = 2643134072;
     uint64 public constant DATACAP_RECEIVER_HOOK_METHOD_NUM = 3726118371;
     uint64 public constant MARKET_NOTIFY_DEAL_METHOD_NUM = 4186741094;
@@ -52,10 +53,8 @@ contract DealClientAxl is AxelarExecutable {
     mapping(bytes => uint256) public providerGasFunds; // Funds set aside for calling oracle by provider
     mapping(uint256 => DestinationChain) public chainIdToDestinationChain;
 
-    constructor(
-        address _gateway,
-        address _gasReceiver
-    ) AxelarExecutable(_gateway) {
+    function initialize(address _gateway, address _gasReceiver) public initilizer{
+        __AxelarExecutable_init(_gateway);
         gasService = IAxelarGasService(_gasReceiver);
     }
 
