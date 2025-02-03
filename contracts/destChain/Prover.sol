@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {MarketAPI} from "filecoin-solidity-api/contracts/v0.8/MarketAPI.sol";
 import {CommonTypes} from "filecoin-solidity-api/contracts/v0.8/types/CommonTypes.sol";
 import {MarketTypes} from "filecoin-solidity-api/contracts/v0.8/types/MarketTypes.sol";
@@ -18,7 +19,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 using CBOR for CBOR.CBORBuffer;
 
-contract DealClient {
+contract DealClient is Initializable {
     using AccountCBOR for *;
     using MarketCBOR for *;
 
@@ -41,6 +42,8 @@ contract DealClient {
     mapping(bytes => Status) public pieceStatus;
 
     IBridgeContract public bridgeContract;
+
+    function initialize() public initializer {}
 
     function setBridgeContract(address _bridgeContract) external {
         if (address(bridgeContract) == address(0)) {
