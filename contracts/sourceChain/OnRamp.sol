@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Cid} from "../Cid.sol";
 import {TRUNCATOR} from "../Const.sol";
 import {DataAttestation} from "./Oracles.sol";
@@ -11,7 +12,9 @@ import {DataAttestation} from "./Oracles.sol";
 //  1) avoid build issues
 //  2) avoid npm deps
 //3)  avoid use of deprecated @zondax/filecoin-solidity
-contract PODSIVerifier {
+contract PODSIVerifier is Initializable {
+    function initialize() public initializer {}
+
     // ProofData is a Merkle proof
     struct ProofData {
         uint64 index;
