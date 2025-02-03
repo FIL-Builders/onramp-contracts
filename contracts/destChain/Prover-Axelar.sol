@@ -22,7 +22,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 
 using CBOR for CBOR.CBORBuffer;
 
-contract DealClientAxl is AxelarExecutable, Initializable {
+contract DealClientAxl is AxelarExecutable {
     using AccountCBOR for *;
     using MarketCBOR for *;
 
@@ -53,7 +53,7 @@ contract DealClientAxl is AxelarExecutable, Initializable {
     mapping(bytes => uint256) public providerGasFunds; // Funds set aside for calling oracle by provider
     mapping(uint256 => DestinationChain) public chainIdToDestinationChain;
 
-    function initialize(address _gateway, address _gasReceiver) public initilizer{
+    function initialize(address _gateway, address _gasReceiver) public initializer{
         __AxelarExecutable_init(_gateway);
         gasService = IAxelarGasService(_gasReceiver);
     }
