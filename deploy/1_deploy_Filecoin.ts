@@ -1,8 +1,9 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+import { ethers,upgrades } from "hardhat";
 
 /**
- * Deploys a contract named "YourContract" using the deployer account and
+ * Deploys an upgradaeble contract named "YourContract" using the deployer account and
  * constructor arguments set to the deployer address
  *
  * @param hre HardhatRuntimeEnvironment object.
@@ -18,13 +19,14 @@ const deployContractOnFilecoin: DeployFunction = async function (
   const axelarGatewayAddressFilecoin = "0x999117D44220F33e0441fbAb2A5aDB8FF485c54D";
   const axelarGasReceiverFilecoin = "0xbe406f0189a0b4cf3a05c286473d23791dd44cc6";
 
-  const prover =  await deploy("DealClientAxl", {
-    from: deployer,
-    args: [axelarGatewayAddressFilecoin, axelarGasReceiverFilecoin],
-    log: true,
-    waitConfirmations: 2,
-  });
-  const proverAddress = prover.address;
+  const prover = await upgrades.deployProxy(
+    await ethers.getContractFactory("DealClientAxl"),
+    [axelarGatewayAddressFilecoin, axelarGasReceiverFilecoin],
+    {kind:'transparent'}
+  );
+
+  await prover.waitForDeployment();
+  const proverAddress = prover.getAddress();
   console.log("🚀 Prover_Axelar Contract Deployed at: ", proverAddress);
   
 };

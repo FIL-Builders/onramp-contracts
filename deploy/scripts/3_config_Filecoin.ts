@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -21,3 +21,5 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+

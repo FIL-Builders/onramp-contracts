@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+import { ethers,upgrades } from "hardhat";
 
 /**
  * Deploys a contract named "YourContract" using the deployer account and
@@ -17,23 +18,25 @@ const deployContractsOnSrcChain: DeployFunction = async function (
 
   const axelarGatewayAddressLinea = "0xe432150cce91c13a887f7D836923d5597adD8E31";
 
-  const onramp =  await deploy("OnRampContract", {
-    from: deployer,
-    args: [],
-    log: true,
-    waitConfirmations: 2,
-  });
-  const onrampAddress = onramp.address;
+  const onramp= await upgrades.deployProxy(
+    await ethers.getContractFactory("OnRampContract"),
+    [],
+    {kind:'transparent'}
+  );
+  await onramp.waitForDeployment();
+  const onrampAddress = await onramp.getAddress();
   console.log("🚀 OnRamp Contract Deployed at: ", onrampAddress);
 
-  const oracle =  await deploy("AxelarBridge", {
-    from: deployer,
-    args: [axelarGatewayAddressLinea],
-    log: true,
-    waitConfirmations: 2,
-  });
-  const oracleAddress = oracle.address;
+
+  const oracle = await upgrades.deployProxy(
+    await ethers.getContractFactory("AxelarBridge"),
+    [axelarGatewayAddressLinea],
+    {kind:'transparent'}
+  );
+  await oracle.waitForDeployment();
+  const oracleAddress = oracle.getAddress();
   console.log("🚀 Oracle Contract Deployed at: ", oracleAddress);
+
 };
 
 export default deployContractsOnSrcChain;
