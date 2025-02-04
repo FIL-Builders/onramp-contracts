@@ -1,118 +1,148 @@
-# On Ramp Contracts
+# **On Ramp Contracts 🚀**
+Bringing decentralized storage to every blockchain! This project enables **dApps to store data on Filecoin** from **multiple L1/L2 networks** using cross-chain smart contracts.
 
-Empowering developers to build dApps that write data from different blockchain to the filecoin network.
+## **🌍 Overview**
+Our smart contracts act as a **bridge** between various blockchains (like Linea, Avalanche, and Arbitrum) and **Filecoin** storage.
 
-The following diagram shows the workflow of data onramp running on other L1/L2 (we are using Linea as an example). 
+✅ **Source Chains (L1/L2 networks)**
+- **`OnRampContract`** – Handles user deposits & cross-chain messaging
+- **`AxelarBridge`** – Bridges messages via **Axelar**
 
+✅ **Filecoin (Storage Destination)**
+- **`DealClientAxl`** – Receives data & initiates storage deals
 
-## Installation
+---
 
-### Deploying smart contracts with Hardhat
-The data onramp project port Filecoin storage capacity to any other blockchain using smart contracts. To achieve this cross-chain storage solution, we need to deploy a set of contracts on Filecoin and any other L1/L2 source chain. 
+## **📦 Installation & Setup**
 
-Overal, contracts should be deployed on the source chain and Filecoin are listed as below.
-- Source Chain
-    - OnRampContract from `Onramp.sol`
-    - AxelarBridge from `Oracle.sol`
-- Filecoin
-    - DealClientAxl from `Prover-Axelar.sol`
-
-We will use hardhat to deploy contracts on both Filecoin & Linea. 
-1. clone this repo & install all dependencies
-    ```
-    git clone https://github.com/FIL-Builders/onramp-contracts.git
-
-    cd onramp-contracts
-    npm intall --force
-    ```
-1. re-name `.env.example` to `.env` and add the private key of the deployer wallet.
-1. make sure the chain configs are correct in `hardhat.config.ts`. If the your desired chain config is missing, you will need to add it in the `hardhat.config.ts`.
-1. compile smart contracts.
-    ```
-    npx hardhat compile
-    ```
-1. deploy DealClientAxl contract to the Filecoin network. Ensure you have enought tFIL to cover the gas fee for smart contract deployment in your wallet.
-    ```
-    npx hardhat deploy --tags Filecoin --network calibration
-    ```
-1. deploy OnRampContract & AxelarBridge to the Linea network. Make sure you have test token LineaETH in your wallet.
-    ```
-    npx hardhat deploy --tags SoureChain --network linea
-    ```
-1. After the contracts are successfully deploy on both networks. You need to add three smart contracts address in `.env` for the following configuration.
-    ```
-    DEPLOYER_PRIVATE_KEY=
-    PROVER_CONTRACT_ADDRESS_DEST_CHAIN=
-    ONRAMP_CONTRACT_ADDRESS_SRC_CHAIN=
-    ORACLE_CONTRACT_ADDRESS_SRC_CHAIN=
-    ```
-1. Wire those contracts together to process cross-chain calls. 
-    - **On Filecoin**: setting up the supported source chains. 
-        ```
-        npx hardhat run scripts/3_config_Filecoin.ts --network calibration
-        ```
-    - **On source chain**: connecting Oracle & Onramp contracts; Then config crosss-chain messages sender and receiver so Oracle contracts knows how to process cross-chain calls.
-        ```
-        npx hardhat run scripts/4_config_Srcchain.ts --network linea
-        ```
-Once you finished the above steps, you have deployed a set of onramp contracts to support cross-chain storage process from Linea to Filecoin.
-### Setting up projects
-1. `forge install`
-1. set up gvm and use go 1.22.7 `gvm install go1.22.7; gvm use go1.22.7`
-1. build onramp: `cd contract-tools/xchain; go build;`
-1. create xchain keys
-    - install geth http://adam.schmideg.net/go-ethereum/install-and-build/Installing-Geth
-    - creating new account
-        ```
-        geth account new --keystore ~/dev/snissn/onramp-contracts/xchain_key.json
-        
-        /home/mikers/dev/snissn/onramp-contracts/xchain_key.json/UTC--2024-10-01T21-31-48.090887441Z--1d0aa8533534a9da983469bae2de09eb86ee65fa
-        ```
-
-1. set environment variables
-    ```
-    export ONRAMP_CODE_PATH=$(pwd)
-    export LOTUS_EXEC_PATH=$(pwd)/../../filecoin-project/lotus
-    export BOOST_EXEC_PATH=$(pwd)/../../filecoin-project/boost
-    export XCHAIN_KEY_PATH=/home/mikers/dev/snissn/onramp-contracts/xchain_key.json/UTC--2024-10-01T21-31-48.090887441Z--1d0aa8533534a9da983469bae2de09eb86ee65fa
-    export XCHAIN_PASSPHRASE=password
-    export XCHAIN_ETH_API="http://127.0.0.1:1234/rpc/v1"
-    export MINER_ADDRESS=t01013
-    ```
-
-This should create a config written to ~/.xchain/config.json
-
-### Running xchain
-
-set environment variables like above but change
-```
-export XCHAIN_ETH_API="ws://127.0.0.1:1234/rpc/v1"
-update xhcain config with ws url
+### **1️⃣ Clone & Install Dependencies**
+```sh
+git clone https://github.com/FIL-Builders/onramp-contracts.git
+cd onramp-contracts
+npm install --force
 ```
 
-modify xchain config to set TargetAggSize to a value larger than the files you are testing with ie 327680 for 10 files x 32k each
-
-
-set up car utility
-```
-go install github.com/ipld/go-car/cmd/car@latest
-```
-
-set up stream-commp util
-```
-go install github.com/filecoin-project/go-fil-commp-hashhash/cmd/stream-commp@latest
+### **2️⃣ Configure Environment Variables**
+- Copy `.env.example` to `.env`
+- Set the private key of your deployer wallet:
+```sh
+DEPLOYER_PRIVATE_KEY=your-private-key
+NETWORK=testnet   # Change to "mainnet" if deploying to mainnet
 ```
 
+### **3️⃣ Compile Smart Contracts**
+```sh
+npx hardhat compile
+```
 
-1. build xchain `./contract-tools/xchain$ go build`
-2. run xchain server
-3. use xchain client to upload data using one of the test token
-    ```
-    /onramp-contracts/contract-tools$ ./client.bash screenshot.png 0xaEE9C9E8E4b40665338BD8374D8D473Bd014D1A1 1
-    ```
+---
 
-## Shashank notes
+## **🚀 Deployment Instructions**
 
-https://gist.github.com/lordshashank/fb2fbd53b5520a862bd451e3603b4718
+### **Step 1: Deploy Filecoin Contracts**
+💾 Deploys the **DealClientAxl** contract on Filecoin to handle storage transactions.
+```sh
+npx hardhat deploy --tags Filecoin --network filecoin
+```
 
-https://github.com/lordshashank/filecoin-deals       
+### **Step 2: Deploy Source Chain Contracts**
+🌉 Deploys `OnRampContract` & `AxelarBridge` on **your chosen L1/L2 source chain**.
+
+**Example for Linea:**
+```sh
+npx hardhat deploy --tags SourceChain --network linea-sepolia
+```
+
+**Other supported networks:**
+```sh
+npx hardhat deploy --tags SourceChain --network arbitrum-sepolia
+npx hardhat deploy --tags SourceChain --network avalanche
+```
+
+---
+
+## **🔧 Configuration**
+Once contracts are deployed, we need to **connect them**.
+
+### **Step 3: Wire Filecoin with Source Chains**
+👀 **Automatically detects all deployed source chains** and configures **DealClientAxl** to accept cross-chain requests.
+```sh
+npx hardhat deploy --tags ConfigFilecoin --network filecoin
+```
+📌 This scans the `deployments/` folder and links **valid** chains dynamically.
+
+### **Step 4: Configure Source Chains**
+🏗 **Sets up cross-chain messaging between OnRamp, AxelarBridge, and Filecoin.**
+```sh
+npx hardhat deploy --tags ConfigSourceChain --network linea-sepolia
+```
+(Replace `linea-sepolia` with your actual source chain.)
+
+---
+
+## **📜 Running the Full Deployment in One Command**
+```sh
+npx hardhat deploy --tags Filecoin --network filecoin && \
+npx hardhat deploy --tags SourceChain --network linea-sepolia && \
+npx hardhat deploy --tags ConfigFilecoin --network filecoin && \
+npx hardhat deploy --tags ConfigSourceChain --network linea-sepolia
+```
+🎉 **Done! Your cross-chain storage system is now fully operational!** 🚀
+
+---
+
+## **🛠 Setting Up the Off-Chain Components**
+This project requires additional tooling to send & retrieve data.
+
+### **1️⃣ Set Up Forge**
+```sh
+forge install
+```
+
+### **2️⃣ Install & Use Go 1.22.7**
+```sh
+gvm install go1.22.7
+gvm use go1.22.7
+```
+
+### **3️⃣ Build OnRamp Tools**
+```sh
+cd contract-tools/xchain
+go build
+```
+
+### **4️⃣ Generate Cross-Chain Keys**
+🔑 **Install Geth & create an Ethereum account for signing transactions**
+```sh
+geth account new --keystore ~/onramp-contracts/xchain_key.json
+```
+Example output:
+```
+/home/user/onramp-contracts/xchain_key.json/UTC--2024-10-01T21-31-48.090887441Z--1d0aa8533534a9da983469bae2de09eb86ee65fa
+```
+
+Set environment variables:
+```sh
+export XCHAIN_KEY_PATH=~/onramp-contracts/xchain_key.json/UTC--2024-10-01T21-31-48.090887441Z--your-address
+export XCHAIN_PASSPHRASE=password
+export XCHAIN_ETH_API="http://127.0.0.1:1234/rpc/v1"
+export MINER_ADDRESS=t01013
+```
+
+---
+
+## **🚀 Running XChain**
+Set environment variables as above, then:
+```sh
+./contract-tools/xchain/xchain_server
+```
+Use the XChain client to upload data:
+```sh
+./contract-tools/client.bash screenshot.png 0xaEE9C9E8E4b40665338BD8374D8D473Bd014D1A1 1
+```
+
+---
+
+## **🔍 Additional Notes & References**
+- [Shashank's Guide](https://gist.github.com/lordshashank/fb2fbd53b5520a862bd451e3603b4718)
+- [Filecoin Deals Repo](https://github.com/lordshashank/filecoin-deals)
