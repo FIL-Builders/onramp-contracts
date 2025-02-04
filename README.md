@@ -80,6 +80,22 @@ npx hardhat deploy --tags ConfigSourceChain --network linea-sepolia
 
 ---
 
+### **Step 5: Verify Contracts on Avalanche**
+📜 **Currently, contract verification is only implemented for Avalanche.**
+To verify deployed contracts, run:
+
+```sh
+npx hardhat verify --network avalanche <contract_address> <constructor_arg_1> <constructor_arg_2> ...
+```
+
+For example, to verify the **AxelarBridge** contract:
+
+```sh
+npx hardhat verify --network avalanche 0x77bc85794bd618dc3a9Ae8874a1Fb9Fb4C029512 0xC249632c2D40b9001FE907806902f63038B737Ab
+```
+
+---
+
 ## **📜 Running the Full Deployment in One Command**
 ```sh
 npx hardhat deploy --tags Filecoin --network filecoin && \
