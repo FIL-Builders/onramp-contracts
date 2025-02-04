@@ -112,6 +112,21 @@ const config: HardhatUserConfig = {
   },
   defaultNetwork: "hardhat",
   networks, // Use only relevant testnet or mainnet chains
+  etherscan: {
+    apiKey: {
+      avalanche: "avalanche", // apiKey is not required, just set a placeholder
+    },
+    customChains: [
+      {
+        network: "avalanche",
+        chainId: 43113,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
+          browserURL: "https://testnet.snowtrace.io/address"
+        }
+      }
+    ]
+  },
 };
 
 export default config;
