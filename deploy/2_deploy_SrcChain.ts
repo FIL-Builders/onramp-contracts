@@ -28,15 +28,6 @@ const deployContractsOnSrcChain: DeployFunction = async function (
   console.log("🚀 OnRamp Contract Deployed at: ", onrampAddress);
 
 
-  const oracle = await upgrades.deployProxy(
-    await ethers.getContractFactory("AxelarBridge"),
-    [axelarGatewayAddressLinea],
-    {kind:'transparent'}
-  );
-  await oracle.waitForDeployment();
-  const oracleAddress = oracle.getAddress();
-  console.log("🚀 Oracle Contract Deployed at: ", oracleAddress);
-
 };
 
 export default deployContractsOnSrcChain;

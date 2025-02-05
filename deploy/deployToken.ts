@@ -21,8 +21,13 @@ const deployTokenContract: DeployFunction = async function (
     [],
     {kind: 'transparent'}
   );
-  await NickleToken.waitForDeployment();
-  console.log("🚀 Nickle Contract Deployed at: ", NickleToken.getAddress() );
+  const deployedContract = await NickleToken.waitForDeployment();
+
+    // Additional verification of deployment
+    const code = await hre.ethers.provider.getCode(deployedContract);
+    if (code === '0x') throw new Error('Contract not deployed');
+
+  console.log("🚀 Nickle Contract Deployed at: ", deployedContract.getAddress() );
 
 };
 

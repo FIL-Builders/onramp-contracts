@@ -5,6 +5,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Cid} from "../Cid.sol";
 import {TRUNCATOR} from "../Const.sol";
 import {DataAttestation} from "./Oracles.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 
 // Adapted from https://github.com/lighthouse-web3/raas-starter-kit/blob/main/contracts/data-segment/Proof.sol
 // adapted rather than imported to
@@ -73,7 +75,8 @@ contract PODSIVerifier {
     }
 }
 
-contract OnRampContract is PODSIVerifier {
+contract OnRampContract is PODSIVerifier, Initializable {
+
     struct Offer {
         bytes commP;
         uint64 size;
@@ -86,14 +89,19 @@ contract OnRampContract is PODSIVerifier {
     // struct Payment {uint256 amount, IERC20 token}?
 
     event DataReady(Offer offer, uint64 id);
-    uint64 private nextOfferId = 1;
-    uint64 private nextAggregateID = 1;
+    uint64 private nextOfferId ;
+    uint64 private nextAggregateID ;
     address public dataProofOracle;
     mapping(uint64 => Offer) public offers;
     mapping(uint64 => uint64[]) public aggregations;
     mapping(uint64 => address) public aggregationPayout;
     mapping(uint64 => bool) public provenAggregations;
     mapping(bytes => uint64) public commPToAggregateID;
+
+        function initialize() public initializer{
+            nextOfferId = 1;
+            nextAggregateID = 1;
+    }
 
     function setOracle(address oracle_) external {
         if (dataProofOracle == address(0)) {
