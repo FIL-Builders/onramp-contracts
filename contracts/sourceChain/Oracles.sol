@@ -88,11 +88,11 @@ contract AxelarBridgeDebug is AxelarExecutable {
     constructor(address _gateway) AxelarExecutable(_gateway) {}
 
     function _execute(
-        bytes32 commandId,
+        bytes32,
         string calldata,
         string calldata sourceAddress_,
         bytes calldata payload_
-    ) internal override{
+    ) internal override {
         DataAttestation memory attestation = abi.decode(
             payload_,
             (DataAttestation)
@@ -119,11 +119,11 @@ contract AxelarBridge is AxelarExecutable {
     }
 
     function _execute(
-        bytes32 commandId,
+        bytes32,
         string calldata _sourceChain_,
         string calldata sourceAddress_,
         bytes calldata payload_
-    ) internal override{
+    ) internal override {
         DataAttestation memory attestation = abi.decode(
             payload_,
             (DataAttestation)
