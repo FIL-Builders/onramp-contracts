@@ -18,7 +18,6 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {AxelarExecutable} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
 import {IAxelarGateway} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGateway.sol";
 import {IAxelarGasService} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGasService.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 using CBOR for CBOR.CBORBuffer;
 
@@ -30,11 +29,12 @@ contract DealClientAxl is AxelarExecutable {
     uint64 public constant AUTHENTICATE_MESSAGE_METHOD_NUM = 2643134072;
     uint64 public constant DATACAP_RECEIVER_HOOK_METHOD_NUM = 3726118371;
     uint64 public constant MARKET_NOTIFY_DEAL_METHOD_NUM = 4186741094;
-    address public constant MARKET_ACTOR_ETH_ADDRESS =
-        address(0xff00000000000000000000000000000000000005);
-    address public constant DATACAP_ACTOR_ETH_ADDRESS =
-        address(0xfF00000000000000000000000000000000000007);
+    address public constant MARKET_ACTOR_ETH_ADDRESS = address(0xff00000000000000000000000000000000000005);
+    address public constant DATACAP_ACTOR_ETH_ADDRESS = address(0xfF00000000000000000000000000000000000007);
     uint256 public constant AXELAR_GAS_FEE = 100000000000000000; // Start with 0.1 FIL
+
+    // Storage gap
+    uint256[50] private __gap;
 
     struct DestinationChain {
         string chainName;

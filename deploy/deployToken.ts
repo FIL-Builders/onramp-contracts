@@ -1,9 +1,8 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { ethers, upgrades } from "hardhat";
 
 /**
- * Deploys an upgradeable contract named "YourContract" using the deployer account and
+ * Deploys a contract named "YourContract" using the deployer account and
  * constructor arguments set to the deployer address
  *
  * @param hre HardhatRuntimeEnvironment object.
@@ -16,19 +15,14 @@ const deployTokenContract: DeployFunction = async function (
   const { deployer } = await hre.getNamedAccounts();
   console.log("Deploying with account:", deployer);
 
-  const NickleToken = await upgrades.deployProxy(
-    await ethers.getContractFactory("Nickle"),
-    [],
-    {kind: 'transparent'}
-  );
-  const deployedContract = await NickleToken.waitForDeployment();
+  const NickleToken =  await deploy("Nickle", {
+    from: deployer,
+    args: [],
+    log: true
+  });
 
-    // Additional verification of deployment
-    const code = await hre.ethers.provider.getCode(deployedContract);
-    if (code === '0x') throw new Error('Contract not deployed');
 
-  console.log("🚀 Nickle Contract Deployed at: ", deployedContract.getAddress() );
-
+  console.log("🚀 Nickle Contract Deployed at: ", NickleToken.address);
 };
 
 export default deployTokenContract;

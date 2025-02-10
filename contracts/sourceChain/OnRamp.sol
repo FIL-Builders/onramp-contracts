@@ -98,7 +98,7 @@ contract OnRampContract is PODSIVerifier, Initializable {
     mapping(uint64 => bool) public provenAggregations;
     mapping(bytes => uint64) public commPToAggregateID;
 
-        function initialize() public initializer{
+    function initialize() public initializer{
             nextOfferId = 1;
             nextAggregateID = 1;
     }

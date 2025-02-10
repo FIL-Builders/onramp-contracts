@@ -3,7 +3,6 @@ pragma solidity ^0.8.17;
 
 import "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
 import "@axelar-network/axelar-gmp-sdk-solidity/contracts/libs/AddressString.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 interface IBridgeContract {
     function _execute(

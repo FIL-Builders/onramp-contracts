@@ -21,6 +21,13 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+    deploy: "./deploy"
+  },
   namedAccounts: {
     deployer: {
       default: 0, // Use the first account as deployer
