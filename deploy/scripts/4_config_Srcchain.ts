@@ -1,28 +1,54 @@
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
-import * as dotenv from "dotenv";
+import fs from "fs";
 
-dotenv.config();
+const configureSourceChainContracts: DeployFunction = async function (
+  hre: HardhatRuntimeEnvironment
+) {
+  console.log("***** Running Source Chain Configuration *****");
 
-async function main() {
-  const proverAddressFilecoin = process.env.PROVER_CONTRACT_ADDRESS_DEST_CHAIN;
-  const oracleAddressLinea = process.env.ORACLE_CONTRACT_ADDRESS_SRC_CHAIN; 
-  const onrampAddressLinea = process.env.ONRAMP_CONTRACT_ADDRESS_SRC_CHAIN;
+  const networkName = hre.network.name;
+  const networkConfig = hre.network.config as any;
 
-  console.log("***** Start wiring Contracts on Source Chain *****");
-  
-  //Wiring Prover Contract on Filecon to Onramp & Oracle contracts on Source Chain
-  const onrampContract = await ethers.getContractAt("OnRampContract", onrampAddressLinea);
-  const setOnrampTx = await onrampContract.setOracle(oracleAddressLinea);
-  console.log("~*~*~ Connect Oracle to onrampContract at:", setOnrampTx.hash);
-  await setOnrampTx.wait();
-  
-  const oracleContract = await ethers.getContractAt("AxelarBridge", oracleAddressLinea);
-  const setOracleTx = await oracleContract.setSenderReceiver(proverAddressFilecoin,onrampAddressLinea);
-  console.log("~*~*~ Setting sender & receiver to oracleContract at:", setOracleTx.hash);
-  await setOracleTx.wait();
-}
+  const { get } = hre.deployments;
+  const deployer = (await hre.getNamedAccounts()).deployer;
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+  // Get deployed contracts
+  const onrampDeployment = await get("OnRampContract");
+  const oracleDeployment = await get("AxelarBridge");
+
+  const onrampContract = await ethers.getContractAt("OnRampContract", onrampDeployment.address);
+  const oracleContract = await ethers.getContractAt("AxelarBridge", oracleDeployment.address);
+
+  // Verify Filecoin deployment exists
+  const filecoinDeploymentDir = `${__dirname}/../../deployments/filecoin/`;
+  if (!fs.existsSync(`${filecoinDeploymentDir}/DealClientAxl.json`)) {
+    throw new Error("❌ DealClientAxl contract not found in Filecoin deployment.");
+  }
+
+  // Read Filecoin contract address
+  const proverDeployment = JSON.parse(
+    fs.readFileSync(`${filecoinDeploymentDir}/DealClientAxl.json`, "utf-8")
+  );
+  const proverAddress = proverDeployment.address;
+
+  console.log(`🚀 Configuring OnRampContract at ${onrampDeployment.address}...`);
+
+  const tx1 = await onrampContract.setOracle(oracleDeployment.address);
+  console.log(`✅ OnRamp Oracle set: ${tx1.hash}`);
+  await tx1.wait();
+
+  console.log(`🚀 Configuring AxelarBridge at ${oracleDeployment.address}...`);
+
+  const tx2 = await oracleContract.setSenderReceiver(proverAddress, onrampDeployment.address);
+  console.log(`✅ AxelarBridge sender/receiver set: ${tx2.hash}`);
+  await tx2.wait();
+};
+
+export default configureSourceChainContracts;
+
+// Run this only after `SourceChain` deployment
+configureSourceChainContracts.tags = ["ConfigSourceChain"];
+configureSourceChainContracts.dependencies = ["SourceChain"];
+
