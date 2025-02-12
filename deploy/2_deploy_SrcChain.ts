@@ -18,7 +18,7 @@ const deployContractsOnSrcChain: DeployFunction = async function (
   console.log("Deploying with account:", deployer);
 
   const { axelarGateway: sourceAxelarGateway } = networkConfig.axelar;
-  const { axelarGateway: filecoinAxelarGateway } = hre.config.networks.filecoin.axelar;
+  const { axelarGateway: filecoinAxelarGateway } = hre.config.networks.filecoin.axelar ;
 
   console.log(`Axelar Gateway (Source - ${networkName}): ${sourceAxelarGateway}`);
   console.log(`Axelar Gateway (Destination - Filecoin): ${filecoinAxelarGateway}`);

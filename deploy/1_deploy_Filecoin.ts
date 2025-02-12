@@ -14,14 +14,14 @@ const deployContractOnFilecoin: DeployFunction = async function (
   const { deployer } = await hre.getNamedAccounts();
   console.log("Deploying with account:", deployer);
 
-  const { axelarGateway, axelarGasService } = hre.network.config.axelar as any;
+  const { axelarGateway, axelarGasService } = hre.network.config.axelar ;
 
   console.log(`Axelar Gateway (Filecoin): ${axelarGateway}`);
   console.log(`Axelar Gas Service (Filecoin): ${axelarGasService}`);
 
   const prover = await upgrades.deployProxy(
     await ethers.getContractFactory("DealClientAxl"),
-    [axelarGatewayAddressFilecoin, axelarGasReceiverFilecoin],
+    [axelarGateway, axelarGasService],
     {kind:'transparent'}
   );
 
