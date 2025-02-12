@@ -14,7 +14,7 @@ const deployContractOnFilecoin: DeployFunction = async function (
   const { deployer } = await hre.getNamedAccounts();
   console.log("Deploying with account:", deployer);
 
-  const { axelarGateway, axelarGasService } = hre.network.config.axelar ;
+  const { axelarGateway, axelarGasService } = hre.network.config.axelar as any;
 
   console.log(`Axelar Gateway (Filecoin): ${axelarGateway}`);
   console.log(`Axelar Gas Service (Filecoin): ${axelarGasService}`);

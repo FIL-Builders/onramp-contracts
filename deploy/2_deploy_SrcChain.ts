@@ -18,7 +18,7 @@ const deployContractsOnSrcChain: DeployFunction = async function (
   console.log("Deploying with account:", deployer);
 
   const { axelarGateway: sourceAxelarGateway } = networkConfig.axelar;
-  const { axelarGateway: filecoinAxelarGateway } = hre.config.networks.filecoin.axelar ;
+  const { axelarGateway: filecoinAxelarGateway } = hre.config.networks.filecoin.axelar as any;
 
   console.log(`Axelar Gateway (Source - ${networkName}): ${sourceAxelarGateway}`);
   console.log(`Axelar Gateway (Destination - Filecoin): ${filecoinAxelarGateway}`);
@@ -33,6 +33,14 @@ const deployContractsOnSrcChain: DeployFunction = async function (
   console.log("🚀 OnRamp Contract Deployed at: ", onrampAddress);
 
 
+  const oracle = await upgrades.deployProxy(
+    await ethers.getContractFactory("AxelarBridge"), 
+    [sourceAxelarGateway],
+    {kind:'transparent'}
+  );
+  await oracle.waitForDeployment();
+  const oracleAddress = await oracle.getAddress();
+  console.log("🚀 Oracle Contract Deployed at: ", oracleAddress);
 };
 
 export default deployContractsOnSrcChain;
