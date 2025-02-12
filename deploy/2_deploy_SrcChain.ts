@@ -2,21 +2,26 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers,upgrades } from "hardhat";
 
-/**
- * Deploys a contract named "YourContract" using the deployer account and
- * constructor arguments set to the deployer address
- *
- * @param hre HardhatRuntimeEnvironment object.
- */
 const deployContractsOnSrcChain: DeployFunction = async function (
   hre: HardhatRuntimeEnvironment
 ) {
-  console.log("***** Start Deloying Contracts on Source Chain*****");
+  const networkName = hre.network.name;
+  const networkConfig = hre.network.config as any;
+
+  if (!networkConfig.isSourceChain) {
+    throw new Error(`❌ Deployment aborted: ${networkName} is not marked as a source chain in Hardhat config.`);
+  }
+
+  console.log(`***** Deploying Contracts on Source Chain: ${networkName} *****`);
   const { deploy } = hre.deployments;
   const { deployer } = await hre.getNamedAccounts();
   console.log("Deploying with account:", deployer);
 
-  const axelarGatewayAddressLinea = "0xe432150cce91c13a887f7D836923d5597adD8E31";
+  const { axelarGateway: sourceAxelarGateway } = networkConfig.axelar;
+  const { axelarGateway: filecoinAxelarGateway } = hre.config.networks.filecoin.axelar;
+
+  console.log(`Axelar Gateway (Source - ${networkName}): ${sourceAxelarGateway}`);
+  console.log(`Axelar Gateway (Destination - Filecoin): ${filecoinAxelarGateway}`);
 
   const onramp= await upgrades.deployProxy(
     await ethers.getContractFactory("OnRampContract"),
@@ -31,7 +36,5 @@ const deployContractsOnSrcChain: DeployFunction = async function (
 };
 
 export default deployContractsOnSrcChain;
+deployContractsOnSrcChain.tags = ["SourceChain"];
 
-// Tags are useful if you have multiple deploy files and only want to run one of them.
-// e.g. yarn deploy --tags OnRampSource
-deployContractsOnSrcChain.tags = ["SoureChain"];
