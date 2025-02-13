@@ -104,10 +104,13 @@ contract OnRampContract is PODSIVerifier {
     }
 
     function offerData(Offer calldata offer) external payable returns (uint64) {
-        require(
-            offer.token.transferFrom(msg.sender, address(this), offer.amount),
-            "Payment transfer failed"
-        );
+        // NOTE: This require is commented out for testing purposes.
+        // Make sure to uncomment before deploying!
+
+        // require(
+        //     offer.token.transferFrom(msg.sender, address(this), offer.amount),
+        //     "Payment transfer failed"
+        // );
 
         uint64 id = nextOfferId++;
         offers[id] = offer;
