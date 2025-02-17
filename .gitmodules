@@ -10,3 +10,6 @@
 [submodule "lib/axelar-gmp-sdk-solidity"]
 	path = lib/axelar-gmp-sdk-solidity
 	url = https://github.com/axelarnetwork/axelar-gmp-sdk-solidity
+[submodule "contract-tools/xchainClient"]
+	path = contract-tools/xchainClient
+	url = https://github.com/FIL-Builders/xchainClient
