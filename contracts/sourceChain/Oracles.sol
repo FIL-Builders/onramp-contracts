@@ -82,10 +82,12 @@ contract DebugMockBridge is IBridgeContract {
     }
 }
 
-contract AxelarBridgeDebug is AxelarExecutable {
+contract AxelarBridgeDebug is AxelarExecutable  {
     event ReceivedAttestation(bytes commP, string sourceAddress);
 
-    constructor(address _gateway) AxelarExecutable(_gateway) {}
+    function initialize(address _gateway) public initializer {
+        __AxelarExecutable_init(_gateway);
+    }
 
     function _execute(
         bytes32 commandId,
@@ -111,7 +113,10 @@ contract AxelarBridge is AxelarExecutable {
     );
     using StringToAddress for string;
 
-    constructor(address _gateway) AxelarExecutable(_gateway) {}
+    
+    function initialize(address _gateway) public initializer{
+        __AxelarExecutable_init(_gateway);
+    }
 
     function setSenderReceiver(address sender_, address receiver_) external {
         receiver = receiver_;

@@ -1,6 +1,8 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-deploy";
+import '@openzeppelin/hardhat-upgrades';
+
 import "dotenv/config";
 
 // Determine if we are on testnet or mainnet
@@ -104,6 +106,13 @@ const config: HardhatUserConfig = {
         runs: 200,
       },
     },
+  },
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+    deploy: "./deploy"
   },
   namedAccounts: {
     deployer: {
