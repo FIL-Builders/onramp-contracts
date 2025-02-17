@@ -53,7 +53,7 @@ contract DealClientAxl is AxelarExecutable {
     mapping(uint256 => DestinationChain) public chainIdToDestinationChain;
 
 
-    function initilize(address _gateway, address _gasReceiver) public initializer{
+    function initialize(address _gateway, address _gasReceiver) public initializer{
          gasService = IAxelarGasService(_gasReceiver);
           __AxelarExecutable_init(_gateway);
     }
