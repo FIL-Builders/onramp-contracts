@@ -82,10 +82,11 @@ contract DebugMockBridge is IBridgeContract {
     }
 }
 
-contract AxelarBridgeDebug is AxelarExecutable {
+contract AxelarBridgeDebug is AxelarExecutable  {
     event ReceivedAttestation(bytes commP, string sourceAddress);
 
     function initialize(address _gateway) public initializer{
+
         __AxelarExecutable_init(_gateway);
     }
 
