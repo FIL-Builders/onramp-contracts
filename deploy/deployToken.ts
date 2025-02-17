@@ -18,9 +18,9 @@ const deployTokenContract: DeployFunction = async function (
   const NickleToken =  await deploy("Nickle", {
     from: deployer,
     args: [],
-    log: true
+    log: true,
+    waitConfirmations: 2,
   });
-
 
   console.log("🚀 Nickle Contract Deployed at: ", NickleToken.address);
 };
