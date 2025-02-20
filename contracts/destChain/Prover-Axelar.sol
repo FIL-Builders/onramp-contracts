@@ -29,15 +29,47 @@ contract DealClientAxl is AxelarExecutable {
     uint64 public constant AUTHENTICATE_MESSAGE_METHOD_NUM = 2643134072;
     uint64 public constant DATACAP_RECEIVER_HOOK_METHOD_NUM = 3726118371;
     uint64 public constant MARKET_NOTIFY_DEAL_METHOD_NUM = 4186741094;
-    address public constant MARKET_ACTOR_ETH_ADDRESS =
-        address(0xff00000000000000000000000000000000000005);
-    address public constant DATACAP_ACTOR_ETH_ADDRESS =
-        address(0xfF00000000000000000000000000000000000007);
+    address public constant MARKET_ACTOR_ETH_ADDRESS = address(0xff00000000000000000000000000000000000005);
+    address public constant DATACAP_ACTOR_ETH_ADDRESS = address(0xfF00000000000000000000000000000000000007);
     uint256 public constant AXELAR_GAS_FEE = 100000000000000000; // Start with 0.1 FIL
+
+    // Storage gap
+    uint256[50] private __gap;
 
     struct DestinationChain {
         string chainName;
         address destinationAddress;
+    }
+
+    struct RequestId {
+        bytes32 requestId;
+        bool valid;
+    }
+
+    struct RequestIdx {
+        uint256 idx;
+        bool valid;
+    }
+
+    struct DealRequest {
+        bytes piece_cid;
+        uint64 piece_size;
+        bool verified_deal;
+        string label;
+        int64 start_epoch;
+        int64 end_epoch;
+        uint256 storage_price_per_epoch;
+        uint256 provider_collateral;
+        uint256 client_collateral;
+        uint64 extra_params_version;
+        ExtraParams extra_params;
+    }
+
+    struct ExtraParams {
+        string location_ref;
+        uint64 car_size;
+        bool skip_ipni_announce;
+        bool remove_unsealed_copy;
     }
 
     enum Status {
@@ -47,14 +79,28 @@ contract DealClientAxl is AxelarExecutable {
         DealTerminated
     }
 
+    DealRequest[] public dealRequests;
+    mapping(bytes32 => RequestIdx) public dealIdToIndex;
+
     mapping(bytes => uint64) public pieceDeals; // commP -> deal ID
+    mapping(bytes => RequestId) public pieceRequests; // commP -> deal request Id
     mapping(bytes => Status) public pieceStatus;
     mapping(bytes => uint256) public providerGasFunds; // Funds set aside for calling oracle by provider
     mapping(uint256 => DestinationChain) public chainIdToDestinationChain;
 
-    function initialize(   address _gateway, address _gasReceiver) public initializer{
-          gasService = IAxelarGasService(_gasReceiver);
-        __AxelarExecutable_init( _gateway);
+ 
+
+    event DealProposalCreate(
+        bytes32 indexed id,
+        uint64 size,
+        bool indexed verified,
+        uint256 price
+    );
+
+    function initialize(address _gateway, address _gasReceiver) public initializer{
+        __AxelarExecutable_init(_gateway);
+
+        gasService = IAxelarGasService(_gasReceiver);
     }
 
     function setDestinationChains(
@@ -83,6 +129,82 @@ contract DealClientAxl is AxelarExecutable {
 
     function addGasFunds(bytes calldata providerAddrData) external payable {
         providerGasFunds[providerAddrData] += msg.value;
+    }
+
+    function makeDealProposal(DealRequest calldata deal) public returns (bytes32){
+        require(
+            pieceStatus[deal.piece_cid] != Status.DealActivated || 
+            pieceStatus[deal.piece_cid] != Status.DealPublished, 
+            "this deal is already active or published"
+        );
+
+        uint256 idx = dealRequests.length;
+        dealRequests.push(deal);
+
+        bytes32 proposalId =  keccak256(abi.encodePacked(msg.sender, block.timestamp, idx));
+        dealIdToIndex[proposalId] = RequestIdx(idx, true);
+
+        pieceRequests[deal.piece_cid] = RequestId(proposalId, true);
+        pieceStatus[deal.piece_cid] = Status.DealPublished;
+
+        emit DealProposalCreate(proposalId, deal.piece_size, deal.verified_deal, deal.storage_price_per_epoch);
+        return proposalId;
+    }
+
+    function getDealRequest(bytes32 proposalId) public view returns (DealRequest memory) {
+        require(dealIdToIndex[proposalId].valid, "Deal does not exist");
+        return dealRequests[dealIdToIndex[proposalId].idx];
+    }
+
+    function getDealProposal(bytes32 proposalId) public view returns (bytes memory) {
+        DealRequest memory deal = getDealRequest(proposalId);
+        MarketTypes.DealProposal memory proposal = MarketTypes.DealProposal(
+            CommonTypes.Cid(deal.piece_cid),
+            deal.piece_size,
+            deal.verified_deal,
+            FilAddresses.fromEthAddress(address(this)),
+            // Dummy provider address, should be replaced with the provider address who pickes the deal
+            FilAddresses.fromActorID(0),
+            CommonTypes.DealLabel(abi.encode(deal.label), true),
+            CommonTypes.ChainEpoch.wrap(deal.start_epoch),
+            CommonTypes.ChainEpoch.wrap(deal.end_epoch),
+            BigInts.fromUint256(deal.storage_price_per_epoch),
+            BigInts.fromUint256(deal.provider_collateral),
+            BigInts.fromUint256(deal.client_collateral)
+        );
+        return MarketCBOR.serializeDealProposal(proposal);
+    }
+
+    function serializeExtraParams(ExtraParams memory params) internal pure returns (bytes memory) {
+        CBOR.CBORBuffer memory buffer = CBOR.create(64);
+        buffer.startFixedArray(4);
+        buffer.writeString(params.location_ref);
+        buffer.writeUInt64(params.car_size);
+        buffer.writeBool(params.skip_ipni_announce);
+        buffer.writeBool(params.remove_unsealed_copy);
+        buffer.endSequence();
+        return buffer.data();
+    }
+
+    function getExtraParams(bytes32 proposalId) public view returns (bytes memory extra_params) {
+        DealRequest memory deal = getDealRequest(proposalId);
+        return serializeExtraParams(deal.extra_params);
+    }
+
+    function updateDealStatus(bytes memory pieceCid) public {
+
+        require(pieceDeals[pieceCid] > 0, "Deal does not exist for piece cid");
+
+        (int256 exit_code, MarketTypes.GetDealActivationReturn memory ret) = MarketAPI
+            .getDealActivation(pieceDeals[pieceCid]);
+        
+        require(exit_code == 0, "Deal activation failed with non zero exit code");
+      
+        if (CommonTypes.ChainEpoch.unwrap(ret.terminated) > 0) {
+            pieceStatus[pieceCid] = Status.DealTerminated;
+        } else if (CommonTypes.ChainEpoch.unwrap(ret.activated) > 0) {
+            pieceStatus[pieceCid] = Status.DealActivated;
+        }
     }
 
     // dealNotify is the callback from the market actor into the contract at the end

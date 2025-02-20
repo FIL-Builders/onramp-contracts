@@ -1,23 +1,64 @@
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
-import * as dotenv from "dotenv";
+import fs from "fs";
 
-dotenv.config();
+const configureFilecoinContracts: DeployFunction = async function (
+  hre: HardhatRuntimeEnvironment
+) {
+  console.log("***** Running Filecoin Configuration *****");
 
-async function main() {
-  const proverAddressFilecoin = process.env.PROVER_CONTRACT_ADDRESS_DEST_CHAIN;
-  const oracleAddressLinea = process.env.ORACLE_CONTRACT_ADDRESS_SRC_CHAIN; 
+  const networkName = hre.network.name;
+  if (networkName !== "filecoin") {
+    throw new Error(`❌ Script must be run on 'filecoin', but got '${networkName}'.`);
+  }
 
-  console.log("***** Start wiring Oracle Contract on Filecoin *****");
-  // Get the deployed contract instance by name
-  const proverContract = await ethers.getContractAt("DealClientAxl", proverAddressFilecoin);
-  const setProverTx = await proverContract.setDestinationChains([59141],['linea'],[oracleAddressLinea]);
-  
-  // Wait for the transaction to be mined
-  console.log("~*~*~ Connect Oracle to ProverContract at:", setProverTx.hash);
-  await setProverTx.wait();
-}
+  const { get } = hre.deployments;
+  const deployer = (await hre.getNamedAccounts()).deployer;
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+  // Get deployed Filecoin contract
+  const proverDeployment = await get("DealClientAxl");
+  const proverContract = await ethers.getContractAt("DealClientAxl", proverDeployment.address);
+
+  // Find valid source chains by checking the `deployments/` directory
+  const deploymentDir = `${__dirname}/../../deployments/`;
+  const sourceChains = fs.readdirSync(deploymentDir).filter((chain) =>
+    fs.existsSync(`${deploymentDir}${chain}/OnRampContract.json`) &&
+    fs.existsSync(`${deploymentDir}${chain}/AxelarBridge.json`)
+  );
+
+  if (sourceChains.length === 0) {
+    throw new Error("❌ No valid source chain deployments found.");
+  }
+
+  console.log(`🔗 Detected source chains: ${sourceChains.join(", ")}`);
+
+  for (const sourceChain of sourceChains) {
+    // Read deployment addresses dynamically
+    const onrampDeployment = JSON.parse(
+      fs.readFileSync(`${deploymentDir}${sourceChain}/OnRampContract.json`, "utf-8")
+    );
+    const oracleDeployment = JSON.parse(
+      fs.readFileSync(`${deploymentDir}${sourceChain}/AxelarBridge.json`, "utf-8")
+    );
+
+    console.log(`🚀 Configuring DealClientAxl for source chain: ${sourceChain}`);
+
+    // Call correct function with dynamically fetched contract addresses
+    const tx = await proverContract.setDestinationChains(
+      [(hre.config.networks[sourceChain] as any).chainId],
+      [sourceChain],
+      [oracleDeployment.address]
+    );
+
+    console.log(`✅ Destination chain ${sourceChain} configured: ${tx.hash}`);
+    await tx.wait();
+  }
+};
+
+export default configureFilecoinContracts;
+
+// Ensure script runs only after `Filecoin` deployment
+configureFilecoinContracts.tags = ["ConfigFilecoin"];
+configureFilecoinContracts.dependencies = ["Filecoin"];
+
