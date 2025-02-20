@@ -86,7 +86,6 @@ contract AxelarBridgeDebug is AxelarExecutable  {
     event ReceivedAttestation(bytes commP, string sourceAddress);
 
     function initialize(address _gateway) public initializer{
-
         __AxelarExecutable_init(_gateway);
     }
 
@@ -115,7 +114,9 @@ contract AxelarBridge is AxelarExecutable {
     using StringToAddress for string;
 
     function initialize(address _gateway) public initializer{
-        __AxelarExecutable_init(_gateway);
+
+
+        __AxelarExecutable_init( _gateway);
     }
 
     function setSenderReceiver(address sender_, address receiver_) external {
