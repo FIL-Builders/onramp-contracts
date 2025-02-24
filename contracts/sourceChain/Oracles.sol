@@ -84,15 +84,18 @@ contract DebugMockBridge is IBridgeContract {
 
 contract AxelarBridgeDebug is AxelarExecutable {
     event ReceivedAttestation(bytes commP, string sourceAddress);
-
+    //tracks whether a command has already been executed using the executedCommands mapping.
+    mapping(bytes32 => bool) public executedCommands; 
     constructor(address _gateway) AxelarExecutable(_gateway) {}
-
     function _execute(
         bytes32 commandId,
         string calldata,
         string calldata sourceAddress_,
         bytes calldata payload_
     ) internal override{
+        //Prevents replay attacks by ensuring that a command cannot be executed more than once.
+        require(!executedCommands[commandId], "Command already executed");
+        executedCommands[commandId] = true;
         DataAttestation memory attestation = abi.decode(
             payload_,
             (DataAttestation)
@@ -104,7 +107,10 @@ contract AxelarBridgeDebug is AxelarExecutable {
 contract AxelarBridge is AxelarExecutable {
     address public receiver;
     address public sender;
+    // Tracks processed commandIds to prevent replay attacks
+    mapping(bytes32 => bool) public executedCommands;
     event ReceivedAttestation(
+        bytes32 indexed commandId,
         string sourceChain,
         string sourceAddress,
         bytes commP
@@ -124,11 +130,15 @@ contract AxelarBridge is AxelarExecutable {
         string calldata sourceAddress_,
         bytes calldata payload_
     ) internal override{
+        require(!executedCommands[commandId], "Command already executed");
         DataAttestation memory attestation = abi.decode(
             payload_,
             (DataAttestation)
         );
+        //Updated the ReceivedAttestation event to include commandId,
+        executedCommands[commandId] = true;
         emit ReceivedAttestation(
+            commandId,
             _sourceChain_,
             sourceAddress_,
             attestation.commP
