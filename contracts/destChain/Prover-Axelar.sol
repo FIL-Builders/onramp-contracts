@@ -93,6 +93,7 @@ contract DealClientAxl is AxelarExecutable {
         bool indexed verified,
         uint256 price
     );
+    event ReceivedDataCap(string received);
 
     constructor(
             address _gateway,
@@ -340,10 +341,21 @@ contract DealClientAxl is AxelarExecutable {
             codec = Misc.CBOR_CODEC;
         } else if (method == MARKET_NOTIFY_DEAL_METHOD_NUM) {
             dealNotify(params);
+        } else if (method == DATACAP_RECEIVER_HOOK_METHOD_NUM) {
+            receiveDataCap(params);
         } else {
             revert("the filecoin method that was called is not handled");
         }
         return (0, codec, ret);
+    }
+
+    function receiveDataCap(bytes memory params) internal {
+        require(
+            msg.sender == DATACAP_ACTOR_ETH_ADDRESS,
+            "msg.sender needs to be datacap actor f07"
+        );
+        emit ReceivedDataCap("DataCap Received!");
+        //TODO:Add get datacap balance api and store datacap amount
     }
 
     function addressToHexString(
