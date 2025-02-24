@@ -1,6 +1,5 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { ethers,upgrades } from "hardhat";
 
 const deployContractsOnSrcChain: DeployFunction = async function (
   hre: HardhatRuntimeEnvironment
@@ -18,29 +17,28 @@ const deployContractsOnSrcChain: DeployFunction = async function (
   console.log("Deploying with account:", deployer);
 
   const { axelarGateway: sourceAxelarGateway } = networkConfig.axelar;
-  const { axelarGateway: filecoinAxelarGateway } = hre.config.networks.filecoin.axelar as any;
+  const { axelarGateway: filecoinAxelarGateway } = hre.config.networks.filecoin.axelar;
 
   console.log(`Axelar Gateway (Source - ${networkName}): ${sourceAxelarGateway}`);
   console.log(`Axelar Gateway (Destination - Filecoin): ${filecoinAxelarGateway}`);
 
-  const onramp= await upgrades.deployProxy(
-    await ethers.getContractFactory("OnRampContract"),
-    [],
-    {kind:'transparent'}
-  );
-  await onramp.waitForDeployment();
-  const onrampAddress = await onramp.getAddress();
-  console.log("🚀 OnRamp Contract Deployed at: ", onrampAddress);
+  const onramp = await deploy("OnRampContract", {
+    from: deployer,
+    args: [],
+    log: true,
+    waitConfirmations: 2,
+  });
 
+  console.log("🚀 OnRamp Contract Deployed at: ", onramp.address);
 
-  const oracle = await upgrades.deployProxy(
-    await ethers.getContractFactory("AxelarBridge"), 
-    [sourceAxelarGateway],
-    {kind:'transparent'}
-  );
-  await oracle.waitForDeployment();
-  const oracleAddress = await oracle.getAddress();
-  console.log("🚀 Oracle Contract Deployed at: ", oracleAddress);
+  const oracle = await deploy("AxelarBridge", {
+    from: deployer,
+    args: [sourceAxelarGateway],
+    log: true,
+    waitConfirmations: 2,
+  });
+
+  console.log("🚀 Oracle Contract Deployed at: ", oracle.address);
 };
 
 export default deployContractsOnSrcChain;
