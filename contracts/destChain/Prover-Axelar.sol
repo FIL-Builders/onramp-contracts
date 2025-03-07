@@ -211,47 +211,38 @@ contract DealClientAxl is AxelarExecutable {
     // and the completion of this call marks the success of PublishStorageDeals
     // @params - cbor byte array of MarketDealNotifyParams
     function dealNotify(bytes memory params) internal {
-        require(
-            msg.sender == MARKET_ACTOR_ETH_ADDRESS,
-            "msg.sender needs to be market actor f05"
-        );
+        require(msg.sender == MARKET_ACTOR_ETH_ADDRESS, "msg.sender needs to be market actor f05");
 
-        MarketTypes.MarketDealNotifyParams memory mdnp = MarketCBOR
-            .deserializeMarketDealNotifyParams(params);
-        MarketTypes.DealProposal memory proposal = MarketCBOR
-            .deserializeDealProposal(mdnp.dealProposal);
+        MarketTypes.MarketDealNotifyParams memory mdnp = MarketCBOR.deserializeMarketDealNotifyParams(params);
+        require(mdnp.dealId > 0, "dealId invalid");
+
+        MarketTypes.DealProposal memory proposal = MarketCBOR.deserializeDealProposal(mdnp.dealProposal);
+        require(proposal.piece_cid.data.length == 33, "piece_cid invalid");
 
         pieceDeals[proposal.piece_cid.data] = mdnp.dealId;
         pieceStatus[proposal.piece_cid.data] = Status.DealPublished;
 
-        int64 duration = CommonTypes.ChainEpoch.unwrap(proposal.end_epoch) -
-            CommonTypes.ChainEpoch.unwrap(proposal.start_epoch);
-        // Expects deal label to be chainId encoded in bytes
+        int64 endEpoch = CommonTypes.ChainEpoch.unwrap(proposal.end_epoch);
+        int64 startEpoch = CommonTypes.ChainEpoch.unwrap(proposal.start_epoch);
+        int64 duration = endEpoch - startEpoch;
+        require(duration > 0, "duration invalid");
+
         uint256 chainId = abi.decode(proposal.label.data, (uint256));
-        DataAttestation memory attest = DataAttestation(
-            proposal.piece_cid.data,
-            duration,
-            mdnp.dealId,
-            uint256(Status.DealPublished)
-        );
+        require(chainId > 0, "chainId invalid");
+
+        DataAttestation memory attest = DataAttestation(proposal.piece_cid.data, duration, mdnp.dealId, uint256(Status.DealPublished));
         bytes memory payload = abi.encode(attest);
+        require(payload.length > 0, "payload invalid");
+
         if (chainId == block.chainid) {
-            IBridgeContract(
-                chainIdToDestinationChain[chainId].destinationAddress
-            )._execute(
-                    chainIdToDestinationChain[chainId].chainName,
-                    addressToHexString(address(this)),
-                    payload
-                );
+            // Commented out to isolate
+            // IBridgeContract(chainIdToDestinationChain[chainId].destinationAddress)._execute(
+            //     chainIdToDestinationChain[chainId].chainName,
+            //     addressToHexString(address(this)),
+            //     payload
+            // );
         } else {
-            // If the chainId is not the current chain, we need to call the gateway
-            // to forward the message to the correct chain
-            call_axelar(
-                payload,
-                proposal.provider.data,
-                AXELAR_GAS_FEE,
-                chainId
-            );
+            revert("Unexpected else branch");
         }
     }
 

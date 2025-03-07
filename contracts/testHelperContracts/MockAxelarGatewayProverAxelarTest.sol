@@ -9,6 +9,12 @@ contract MockAxelarGateway {
         bytes payload
     );
 
+    event Executed(string sourceChain, string sourceAddress, bytes payload);
+
+    function _execute(string memory sourceChain, string memory sourceAddress, bytes memory payload) external {
+        emit Executed(sourceChain, sourceAddress, payload);
+    }
+
     function validateContractCall(
         bytes32 commandId,
         string calldata sourceChain,
