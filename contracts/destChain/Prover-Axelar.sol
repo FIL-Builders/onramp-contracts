@@ -94,6 +94,11 @@ contract DealClientAxl is AxelarExecutable {
         uint256 price
     );
     event ReceivedDataCap(string received);
+    event DealNotify(
+        uint64 dealId,
+        bytes commP,
+        bytes chainId
+    );
 
     constructor(
             address _gateway,
@@ -228,7 +233,7 @@ contract DealClientAxl is AxelarExecutable {
         int64 duration = CommonTypes.ChainEpoch.unwrap(proposal.end_epoch) -
             CommonTypes.ChainEpoch.unwrap(proposal.start_epoch);
         // Expects deal label to be chainId encoded in bytes
-        uint256 chainId = abi.decode(proposal.label.data, (uint256));
+        uint256 chainId = asciiBytesToUint(proposal.label.data);
         DataAttestation memory attest = DataAttestation(
             proposal.piece_cid.data,
             duration,
@@ -236,6 +241,12 @@ contract DealClientAxl is AxelarExecutable {
             uint256(Status.DealPublished)
         );
         bytes memory payload = abi.encode(attest);
+
+        emit DealNotify(mdnp.dealId,
+            proposal.piece_cid.data,
+            proposal.label.data
+        );
+
         if (chainId == block.chainid) {
             IBridgeContract(
                 chainIdToDestinationChain[chainId].destinationAddress
@@ -263,12 +274,13 @@ contract DealClientAxl is AxelarExecutable {
         uint256 chainId
     ) internal {
         uint256 gasFunds = gasTarget;
-        if (providerGasFunds[providerAddrData] >= gasTarget) {
-            providerGasFunds[providerAddrData] -= gasTarget;
-        } else {
-            gasFunds = providerGasFunds[providerAddrData];
-            providerGasFunds[providerAddrData] = 0;
-        }
+        //TODO Need to rethink who should pay for the crosschain tx gas fee
+        // if (providerGasFunds[providerAddrData] >= gasTarget) {
+        //     providerGasFunds[providerAddrData] -= gasTarget;
+        // } else {
+        //     gasFunds = providerGasFunds[providerAddrData];
+        //     providerGasFunds[providerAddrData] = 0;
+        // }
         string memory destinationChain = chainIdToDestinationChain[chainId]
             .chainName;
         string memory destinationAddress = addressToHexString(
@@ -362,5 +374,17 @@ contract DealClientAxl is AxelarExecutable {
         address _addr
     ) internal pure returns (string memory) {
         return Strings.toHexString(uint256(uint160(_addr)), 20);
+    }
+
+    function asciiBytesToUint(
+        bytes memory asciiBytes
+    ) public pure returns (uint256) {
+        uint256 result = 0;
+        for (uint256 i = 0; i < asciiBytes.length; i++) {
+            uint256 digit = uint256(uint8(asciiBytes[i])) - 48; // Convert ASCII to digit
+            require(digit <= 9, "Invalid ASCII byte");
+            result = result * 10 + digit;
+        }
+        return result;
     }
 }

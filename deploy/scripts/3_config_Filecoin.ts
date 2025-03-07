@@ -54,6 +54,22 @@ const configureFilecoinContracts: DeployFunction = async function (
     console.log(`✅ Destination chain ${sourceChain} configured: ${tx.hash}`);
     await tx.wait();
   }
+
+  console.log(`🚀 Configuring DealClientAxl to add GAS for Axelar gas service.`);
+
+  // Calling addGasFunds to add FIL for payment
+  const providerAddrData = ethers.encodeBytes32String("t017840");
+
+  // 🔹 Call the function and send 1 FIL
+  const tx = await proverContract.addGasFunds(providerAddrData, {
+    value: ethers.parseUnits("2", 18) // 1 FIL = 10^18 attoFIL
+  });
+
+  console.log("AddGasFunds Transaction sent:", tx.hash);
+
+  // Wait for transaction confirmation
+  await tx.wait();
+  console.log("Transaction confirmed!");
 };
 
 export default configureFilecoinContracts;
