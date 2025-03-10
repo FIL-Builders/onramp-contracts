@@ -45,7 +45,7 @@ const configureFilecoinContracts: DeployFunction = async function (
     console.log(`🚀 Configuring DealClientAxl for source chain: ${sourceChain}`);
 
     // Call correct function with dynamically fetched contract addresses
-    const tx = await proverContract.setDestinationChains(
+    const tx = await proverContract.setSourceChains(
       [(hre.config.networks[sourceChain] as any).chainId],
       [sourceChain],
       [oracleDeployment.address]
@@ -62,7 +62,7 @@ const configureFilecoinContracts: DeployFunction = async function (
 
   // 🔹 Call the function and send 1 FIL
   const tx = await proverContract.addGasFunds(providerAddrData, {
-    value: ethers.parseUnits("2", 18) // 1 FIL = 10^18 attoFIL
+    value: ethers.parseUnits("1", 18) // 1 FIL = 10^18 attoFIL
   });
 
   console.log("AddGasFunds Transaction sent:", tx.hash);
