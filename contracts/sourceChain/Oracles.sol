@@ -71,7 +71,7 @@ contract AxelarBridge is AxelarExecutable {
             "Only registered sender addr can execute"
         );
 
-        // IReceiveAttestation(receiver).proveDataStored(attestation);
+        IReceiveAttestation(receiver).proveDataStored(attestation);
     }
 }
 
