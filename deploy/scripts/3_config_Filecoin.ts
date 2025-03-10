@@ -19,6 +19,7 @@ const configureFilecoinContracts: DeployFunction = async function (
   // Get deployed Filecoin contract
   const proverDeployment = await get("DealClientAxl");
   const proverContract = await ethers.getContractAt("DealClientAxl", proverDeployment.address);
+  console.log("DealClientAxl Contract located at: ",await proverContract.getAddress())
 
   // Find valid source chains by checking the `deployments/` directory
   const deploymentDir = `${__dirname}/../../deployments/`;
@@ -35,14 +36,11 @@ const configureFilecoinContracts: DeployFunction = async function (
 
   for (const sourceChain of sourceChains) {
     // Read deployment addresses dynamically
-    const onrampDeployment = JSON.parse(
-      fs.readFileSync(`${deploymentDir}${sourceChain}/OnRampContract.json`, "utf-8")
-    );
     const oracleDeployment = JSON.parse(
       fs.readFileSync(`${deploymentDir}${sourceChain}/AxelarBridge.json`, "utf-8")
     );
 
-    console.log(`🚀 Configuring DealClientAxl for source chain: ${sourceChain}`);
+    console.log(`🚀 Configuring DealClientAxl for source chain: ${sourceChain} & ${oracleDeployment.address}`);
 
     // Call correct function with dynamically fetched contract addresses
     const tx = await proverContract.setSourceChains(
@@ -53,10 +51,16 @@ const configureFilecoinContracts: DeployFunction = async function (
 
     console.log(`✅ Destination chain ${sourceChain} configured: ${tx.hash}`);
     await tx.wait();
+    
+    const chainId = (hre.config.networks[sourceChain] as any).chainId;
+    const [chainName, sourceOracleAddress] = await proverContract.getSourceChain(chainId);
+    console.log(`Chain ID: ${chainId}`);
+    console.log(`Chain Name: ${chainName}`);
+    console.log(`Source Oracle Address: ${sourceOracleAddress}`);
+    
   }
 
   console.log(`🚀 Configuring DealClientAxl to add GAS for Axelar gas service.`);
-
   // Calling addGasFunds to add FIL for payment
   const providerAddrData = ethers.encodeBytes32String("t017840");
 
