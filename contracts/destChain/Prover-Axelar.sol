@@ -35,9 +35,9 @@ contract DealClientAxl is AxelarExecutable {
         address(0xfF00000000000000000000000000000000000007);
     uint256 public constant AXELAR_GAS_FEE = 100000000000000000; // Start with 0.1 FIL
 
-    struct DestinationChain {
+    struct SourceChain {
         string chainName;
-        address destinationAddress;
+        address sourceOracleAddress;
     }
 
     struct RequestId {
@@ -85,7 +85,7 @@ contract DealClientAxl is AxelarExecutable {
     mapping(bytes => RequestId) public pieceRequests; // commP -> deal request Id
     mapping(bytes => Status) public pieceStatus;
     mapping(bytes => uint256) public providerGasFunds; // Funds set aside for calling oracle by provider
-    mapping(uint256 => DestinationChain) public chainIdToDestinationChain;
+    mapping(uint256 => SourceChain) public chainIdToSourceChain;
 
     event DealProposalCreate(
         bytes32 indexed id,
@@ -93,6 +93,15 @@ contract DealClientAxl is AxelarExecutable {
         bool indexed verified,
         uint256 price
     );
+    event ReceivedDataCap(string received);
+    event DealNotify(
+        uint64 dealId,
+        bytes commP,
+        bytes chainId
+    );
+    event XChainProveDataStored(
+        string destinationChain, 
+        string destinationAddress);
 
     constructor(
             address _gateway,
@@ -101,28 +110,34 @@ contract DealClientAxl is AxelarExecutable {
         gasService = IAxelarGasService(_gasReceiver);
     }
 
-    function setDestinationChains(
+    function setSourceChains(
         uint[] calldata chainIds,
-        string[] calldata destinationChains,
-        address[] calldata destinationAddresses
+        string[] calldata sourceChains,
+        address[] calldata sourceOracleAddresses
     ) external {
         require(
-            chainIds.length == destinationChains.length &&
-                destinationChains.length == destinationAddresses.length,
+            chainIds.length == sourceChains.length &&
+                sourceChains.length == sourceOracleAddresses.length,
             "Input arrays must have the same length"
         );
 
         for (uint i = 0; i < chainIds.length; i++) {
             require(
-                chainIdToDestinationChain[chainIds[i]].destinationAddress ==
-                    address(0),
-                "Destination chains already configured for the chainId"
+                chainIdToSourceChain[chainIds[i]].sourceOracleAddress !=
+                    sourceOracleAddresses[i],
+                "Same source chain already configured in the Prover Contract"
             );
-            chainIdToDestinationChain[chainIds[i]] = DestinationChain(
-                destinationChains[i],
-                destinationAddresses[i]
+            chainIdToSourceChain[chainIds[i]] = SourceChain(
+                sourceChains[i],
+                sourceOracleAddresses[i]
             );
         }
+    }
+
+    function getSourceChain(uint256 chainId) public view returns (string memory, address) {
+        SourceChain memory source = chainIdToSourceChain[chainId];
+        require(source.sourceOracleAddress != address(0), "chainId Chain is not configured in Prover Contract");
+        return (source.chainName, source.sourceOracleAddress);
     }
 
     function addGasFunds(bytes calldata providerAddrData) external payable {
@@ -227,7 +242,7 @@ contract DealClientAxl is AxelarExecutable {
         int64 duration = CommonTypes.ChainEpoch.unwrap(proposal.end_epoch) -
             CommonTypes.ChainEpoch.unwrap(proposal.start_epoch);
         // Expects deal label to be chainId encoded in bytes
-        uint256 chainId = abi.decode(proposal.label.data, (uint256));
+        uint256 chainId = asciiBytesToUint(proposal.label.data);
         DataAttestation memory attest = DataAttestation(
             proposal.piece_cid.data,
             duration,
@@ -235,11 +250,17 @@ contract DealClientAxl is AxelarExecutable {
             uint256(Status.DealPublished)
         );
         bytes memory payload = abi.encode(attest);
+
+        emit DealNotify(mdnp.dealId,
+            proposal.piece_cid.data,
+            proposal.label.data
+        );
+
         if (chainId == block.chainid) {
             IBridgeContract(
-                chainIdToDestinationChain[chainId].destinationAddress
+                chainIdToSourceChain[chainId].sourceOracleAddress
             )._execute(
-                    chainIdToDestinationChain[chainId].chainName,
+                    chainIdToSourceChain[chainId].chainName,
                     addressToHexString(address(this)),
                     payload
                 );
@@ -262,25 +283,27 @@ contract DealClientAxl is AxelarExecutable {
         uint256 chainId
     ) internal {
         uint256 gasFunds = gasTarget;
-        if (providerGasFunds[providerAddrData] >= gasTarget) {
-            providerGasFunds[providerAddrData] -= gasTarget;
-        } else {
-            gasFunds = providerGasFunds[providerAddrData];
-            providerGasFunds[providerAddrData] = 0;
-        }
-        string memory destinationChain = chainIdToDestinationChain[chainId]
+        //TODO Need to rethink who should pay for the crosschain tx gas fee
+        // if (providerGasFunds[providerAddrData] >= gasTarget) {
+        //     providerGasFunds[providerAddrData] -= gasTarget;
+        // } else {
+        //     gasFunds = providerGasFunds[providerAddrData];
+        //     providerGasFunds[providerAddrData] = 0;
+        // }
+        string memory sourceChain = chainIdToSourceChain[chainId]
             .chainName;
-        string memory destinationAddress = addressToHexString(
-            chainIdToDestinationChain[chainId].destinationAddress
+        string memory sourceOracleAddress = addressToHexString(
+            chainIdToSourceChain[chainId].sourceOracleAddress
         );
         gasService.payNativeGasForContractCall{value: gasFunds}(
             address(this),
-            destinationChain,
-            destinationAddress,
+            sourceChain,
+            sourceOracleAddress,
             payload,
             msg.sender
         );
-        gateway().callContract(destinationChain, destinationAddress, payload);
+        emit XChainProveDataStored(sourceChain, sourceOracleAddress);
+        gateway().callContract(sourceChain, sourceOracleAddress, payload);
     }
 
     function _execute(
@@ -306,9 +329,9 @@ contract DealClientAxl is AxelarExecutable {
         bytes memory payload = abi.encode(attest);
         if (chainId == block.chainid) {
             IBridgeContract(
-                chainIdToDestinationChain[chainId].destinationAddress
+                chainIdToSourceChain[chainId].sourceOracleAddress
             )._execute(
-                    chainIdToDestinationChain[chainId].chainName,
+                    chainIdToSourceChain[chainId].chainName,
                     addressToHexString(address(this)),
                     payload
                 );
@@ -340,15 +363,38 @@ contract DealClientAxl is AxelarExecutable {
             codec = Misc.CBOR_CODEC;
         } else if (method == MARKET_NOTIFY_DEAL_METHOD_NUM) {
             dealNotify(params);
+        } else if (method == DATACAP_RECEIVER_HOOK_METHOD_NUM) {
+            receiveDataCap(params);
         } else {
             revert("the filecoin method that was called is not handled");
         }
         return (0, codec, ret);
     }
 
+    function receiveDataCap(bytes memory params) internal {
+        require(
+            msg.sender == DATACAP_ACTOR_ETH_ADDRESS,
+            "msg.sender needs to be datacap actor f07"
+        );
+        emit ReceivedDataCap("DataCap Received!");
+        //TODO:Add get datacap balance api and store datacap amount
+    }
+
     function addressToHexString(
         address _addr
     ) internal pure returns (string memory) {
         return Strings.toHexString(uint256(uint160(_addr)), 20);
+    }
+
+    function asciiBytesToUint(
+        bytes memory asciiBytes
+    ) public pure returns (uint256) {
+        uint256 result = 0;
+        for (uint256 i = 0; i < asciiBytes.length; i++) {
+            uint256 digit = uint256(uint8(asciiBytes[i])) - 48; // Convert ASCII to digit
+            require(digit <= 9, "Invalid ASCII byte");
+            result = result * 10 + digit;
+        }
+        return result;
     }
 }

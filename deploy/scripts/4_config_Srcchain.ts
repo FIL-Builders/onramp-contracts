@@ -8,11 +8,7 @@ const configureSourceChainContracts: DeployFunction = async function (
 ) {
   console.log("***** Running Source Chain Configuration *****");
 
-  const networkName = hre.network.name;
-  const networkConfig = hre.network.config as any;
-
   const { get } = hre.deployments;
-  const deployer = (await hre.getNamedAccounts()).deployer;
 
   // Get deployed contracts
   const onrampDeployment = await get("OnRampContract");
@@ -44,6 +40,12 @@ const configureSourceChainContracts: DeployFunction = async function (
   const tx2 = await oracleContract.setSenderReceiver(proverAddress, onrampDeployment.address);
   console.log(`✅ AxelarBridge sender/receiver set: ${tx2.hash}`);
   await tx2.wait();
+
+  const receiver = await oracleContract.receiver();
+  const sender = await oracleContract.sender();
+
+  console.log("AxelarBridge Receiver Address is", receiver);
+  console.log("AxelarBridge Sender Address is", sender);
 };
 
 export default configureSourceChainContracts;
