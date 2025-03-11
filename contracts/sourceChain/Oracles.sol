@@ -15,7 +15,7 @@ interface IBridgeContract {
 struct DataAttestation {
     bytes commP;
     int64 duration;
-    uint64 FILID;
+    uint64 dealID;
     uint status;
 }
 
