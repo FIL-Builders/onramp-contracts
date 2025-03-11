@@ -123,15 +123,21 @@ contract DealClientAxl is AxelarExecutable {
 
         for (uint i = 0; i < chainIds.length; i++) {
             require(
-                chainIdToSourceChain[chainIds[i]].sourceOracleAddress ==
-                    address(0),
-                "Destination chains already configured for the chainId"
+                chainIdToSourceChain[chainIds[i]].sourceOracleAddress !=
+                    sourceOracleAddresses[i],
+                "Same source chain already configured in the Prover Contract"
             );
             chainIdToSourceChain[chainIds[i]] = SourceChain(
                 sourceChains[i],
                 sourceOracleAddresses[i]
             );
         }
+    }
+
+    function getSourceChain(uint256 chainId) public view returns (string memory, address) {
+        SourceChain memory source = chainIdToSourceChain[chainId];
+        require(source.sourceOracleAddress != address(0), "chainId Chain is not configured in Prover Contract");
+        return (source.chainName, source.sourceOracleAddress);
     }
 
     function addGasFunds(bytes calldata providerAddrData) external payable {

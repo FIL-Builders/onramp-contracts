@@ -15,7 +15,7 @@ interface IBridgeContract {
 struct DataAttestation {
     bytes commP;
     int64 duration;
-    uint64 FILID;
+    uint64 dealID;
     uint status;
 }
 
@@ -71,7 +71,7 @@ contract AxelarBridge is AxelarExecutable {
             "Only registered sender addr can execute"
         );
 
-        // IReceiveAttestation(receiver).proveDataStored(attestation);
+        IReceiveAttestation(receiver).proveDataStored(attestation);
     }
 }
 
