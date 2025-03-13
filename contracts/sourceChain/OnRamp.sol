@@ -104,6 +104,7 @@ contract OnRampContract is PODSIVerifier {
     mapping(address => uint64[]) private clientOffers;
     mapping(uint64 => bool) public isOfferAggregated;
     mapping(uint64 => uint64) private offerToAggregationId;
+    mapping(uint64 => uint64) public aggregationDealIds;
 
     function setOracle(address oracle_) external {
         if (dataProofOracle == address(0)) {
@@ -161,10 +162,12 @@ contract OnRampContract is PODSIVerifier {
         string memory location,
         uint256 amount,
         IERC20 token,
-        bool exists
+        bool exists,
+        bool isAggregated
     ) {
         Offer storage offer = offers[offerId];
-        exists = offer.amount != 0;
+        exists = offer.size != 0;
+        isAggregated = isOfferAggregated[offerId];
         if (exists) {
             return (
                 offer.commP,
@@ -172,7 +175,8 @@ contract OnRampContract is PODSIVerifier {
                 offer.location,
                 offer.amount,
                 offer.token,
-                true
+                true,
+                isAggregated
             );
         }
     }
@@ -182,7 +186,7 @@ contract OnRampContract is PODSIVerifier {
         bool isAggregated,
         bool isProven
     ) {
-        exists = offers[offerId].amount != 0;
+        exists = offers[offerId].size != 0;
         isAggregated = isOfferAggregated[offerId];
         
         if (isAggregated) {
@@ -258,6 +262,8 @@ contract OnRampContract is PODSIVerifier {
         require(aggID != 0, "Aggregate not found");
         emit ProveDataStored(attestation.commP, attestation.dealID);
 
+        aggregationDealIds[aggID] = attestation.dealID;
+
         //transfer payment to the receiver if the payment amount > 0
         for (uint i = 0; i < aggregations[aggID].length; i++) {
             uint64 offerID = aggregations[aggID][i];
@@ -270,5 +276,13 @@ contract OnRampContract is PODSIVerifier {
             }
         }
         provenAggregations[aggID] = true;
+    }
+
+    function getOfferDealId(uint64 offerId) external view returns (uint64 dealId, bool exists) {
+        if (isOfferAggregated[offerId]) {
+            uint64 aggId = offerToAggregationId[offerId];
+            dealId = aggregationDealIds[aggId];
+            exists = dealId != 0;
+        }
     }
 }
