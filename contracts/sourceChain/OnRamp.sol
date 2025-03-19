@@ -74,12 +74,19 @@ contract PODSIVerifier {
 }
 
 contract OnRampContract is PODSIVerifier {
+    enum OfferStatus {
+        Pending,
+        Aggregated,
+        Proven
+    }
+
     struct Offer {
         bytes commP;
         uint64 size;
         string location;
         uint256 amount;
         IERC20 token;
+        OfferStatus status;
     }
     // Possible rearrangement:
     // struct Hint {string location, uint64 size} ?
@@ -124,10 +131,19 @@ contract OnRampContract is PODSIVerifier {
         // );
 
         uint64 id = nextOfferId++;
-        offers[id] = offer;
+        Offer memory newOffer = Offer({
+            commP: offer.commP,
+            size: offer.size,
+            location: offer.location,
+            amount: offer.amount,
+            token: offer.token,
+            status: OfferStatus.Pending
+        });
+        
+        offers[id] = newOffer;
         clientOffers[msg.sender].push(id);
 
-        emit DataReady(offer, id);
+        emit DataReady(newOffer, id);
         return id;
     }
 
@@ -163,11 +179,11 @@ contract OnRampContract is PODSIVerifier {
         uint256 amount,
         IERC20 token,
         bool exists,
-        bool isAggregated
+        OfferStatus status
     ) {
-        Offer storage offer = offers[offerId];
+        Offer memory offer = offers[offerId];
         exists = offer.size != 0;
-        isAggregated = isOfferAggregated[offerId];
+        
         if (exists) {
             return (
                 offer.commP,
@@ -176,22 +192,20 @@ contract OnRampContract is PODSIVerifier {
                 offer.amount,
                 offer.token,
                 true,
-                isAggregated
+                offer.status
             );
         }
     }
 
     function getOfferStatus(uint64 offerId) external view returns (
         bool exists,
-        bool isAggregated,
-        bool isProven
+        OfferStatus status
     ) {
-        exists = offers[offerId].size != 0;
-        isAggregated = isOfferAggregated[offerId];
+        Offer memory offer = offers[offerId];
+        exists = offer.size != 0;
         
-        if (isAggregated) {
-            uint64 aggId = offerToAggregationId[offerId];
-            isProven = provenAggregations[aggId];
+        if (exists) {
+            status = offer.status;
         }
     }
 
@@ -217,11 +231,13 @@ contract OnRampContract is PODSIVerifier {
             );
             isOfferAggregated[offerID] = true;
             offerToAggregationId[offerID] = aggId;
+            
+            offers[offerID].status = OfferStatus.Aggregated;
         }
         aggregations[aggId] = offerIDs;
         aggregationPayout[aggId] = payoutAddr;
         commPToAggregateID[commP] = aggId;
-        emit AggregationCommitted(aggId, commP,offerIDs, payoutAddr);
+        emit AggregationCommitted(aggId, commP, offerIDs, payoutAddr);
     }
 
     function getAggregationDetails(uint64 aggId) external view returns (
@@ -267,6 +283,9 @@ contract OnRampContract is PODSIVerifier {
         //transfer payment to the receiver if the payment amount > 0
         for (uint i = 0; i < aggregations[aggID].length; i++) {
             uint64 offerID = aggregations[aggID][i];
+            
+            offers[offerID].status = OfferStatus.Proven;
+            
             if(offers[offerID].amount > 0){
                 require(offers[offerID].token.transfer(
                             aggregationPayout[aggID],
