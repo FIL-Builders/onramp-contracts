@@ -1,61 +1,65 @@
-# On Ramp Contracts 🚀
+# 🚀 CrossChain Data Bridge
 
-Bringing decentralized storage to every blockchain! This project enables **dApps to store data on Filecoin** from **multiple L1/L2 networks** using cross-chain smart contracts.
+Bringing decentralized storage to every blockchain! This project enables **dApps to store data on Filecoin** from **multiple L1/L2 networks** using cross-chain data onramp smart contracts.
 
 ## 📚 Table of Contents
 - [Overview](#overview)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
+  - [Architecture](#architecture)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation Steps](#installation-steps)
-- [Deployment Instructions](#deployment-instructions)
-- [Configuration](#configuration)
+  - [Installation](#installation)
+  - [Deployment](#deployment)
+  - [Configuration](#configuration)
 - [Setting up xChain Client](#setting-up-xchain-client)
-- [Usage](#usage)
+  - [Usage](#usage)
 - [Additional Resources](#additional-resources)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## 🌍 Overview
 
-The cross-chain data bridge (aka, onramp contracts) allows applications on one blockchain (source chain) to store and retrieve data on the Filecoin decentralized network. This means that any blockchain can leverage Filecoin's decentralized storage capabilities for: 
+The CrossChain Data Bridge(aka, onramp contracts) enables applications on various blockchains (source chains) to store and retrieve data directly on the Filecoin decentralized storage network.
 
-- Cross-Chain Compatibility: Supports multiple L1 and L2 networks.
-- Verifiable Data Storage: Utilizes Filecoin's robust storage network.
-- Modular Architecture: Easily extendable to support additional networks and functionalities.
+**Features**
 
-Our onramp contracts act as a **bridge** between various blockchains (like Linea, Avalanche, and Arbitrum) and **Filecoin** storage. The framework consists of:
+- ⚡ Cross-Chain Compatibility – Supports multiple L1 & L2 networks.
+- 🔐 Verifiable Storage – Leverages Filecoin's decentralized storage with built-in verification.
+- 🧩 Modular Design – Easily extendable to integrate additional blockchains and components.
 
-✅ **Source Chains (L1/L2 networks)**
-- **`OnRampContract`** – Handles cross-chain storage requests & verification, and user payments.
-- **`AxelarBridge`** – Bridges messages via **Axelar**
+Our contracts act as a bridge between source chains (e.g., Linea, Avalanche, Arbitrum) and Filecoin.
 
-✅ **Filecoin (Storage Destination)**
-- **`DealClientAxl`** – Receives deal notification from Filecoin,  sends proof back to source chain. 
+- **Source Chains (L1/L2 networks)**
+  - **`OnRampContract`** – Handles cross-chain storage requests & verification, and user payments.
+  - **`AxelarBridge`** – Bridges messages via **Axelar**
 
-## Architecture
+- **Filecoin (Storage Destination)**
+  - **`DealClientAxl`** – Receives deal notification from Filecoin builtIn actor,  sends proof back to source chain. 
+
+### Architecture
+
+![image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*d10pFHzMRBv6mMOx4Z7Wbw.gif)
 
 The cross-chain data bridge works through two main components deployed across chains:
 
 1. **Onramp Contracts**: 
 
-- Source Chain Contracts: `Onramp.sol` & `Oracle.sol`
-- Destination Chain Contract (Filecoin): `Prover.sol`
+    - Source Chain Contracts: `Onramp.sol` & `Oracle.sol`
+    - Destination Chain Contract (Filecoin): `Prover.sol`
 
 2. **[xChain Client](https://github.com/FIL-Builders/xchainClient)**: 
 Monitoring storage requests from the source chain, aggregating data, and facilitating deal-making with storage providers or deal engines.
 
-## Getting Started
+You can refer to a [dataBridgeDemo](https://github.com/FIL-Builders/dataBridgeDemo) to learn how to interact with onramp contract to onboard data from other L1 to Filecoin.
 
-### Prerequisites
+## 🚀 Getting Started
+
+#### Prerequisites
 - Node.js and npm installed
 - Go 1.22.7 or later
-- Geth
 - Access to test tokens for your chosen source chain
 - Test FIL for Filecoin Calibration network
 
-### Installation Steps
+---
+### Installation
 
 #### 1️⃣ Clone & Install Dependencies
 ```bash
@@ -76,107 +80,88 @@ NETWORK=testnet   # Change to "mainnet" if deploying to mainnet
 ```bash
 npx hardhat compile
 ```
+---
+###  Deployment
+⚠️ Ensure you have sufficient test tokens on both chains before deploying.
 
-## 🚀 Deployment Instructions
-
-### Step 1: Deploy Filecoin Contracts
-💾 Deploys the **DealClientAxl** contract on Filecoin to handle storage transactions.
+#### Step 1: Deploy Filecoin Contracts
+Deploys the **DealClientAxl** contract on Filecoin to handle storage transactions.
 ```bash
 npx hardhat deploy --tags Filecoin --network filecoin
 ```
 
-### Step 2: Deploy Source Chain Contracts
-🌉 Deploys `OnRampContract` & `AxelarBridge` on **your chosen L1/L2 source chain**.
+#### Step 2: Deploy Source Chain Contracts
+Deploys `OnRampContract` & `AxelarBridge` on **your chosen L1/L2 source chain**.
 
 **Example for Linea:**
 ```bash
-npx hardhat deploy --tags SourceChain --network linea-sepolia
+npx hardhat deploy --tags SourceChain --network avalanche
 ```
 
 **Other supported networks:**
 ```bash
 npx hardhat deploy --tags SourceChain --network arbitrum-sepolia
-npx hardhat deploy --tags SourceChain --network avalanche
+npx hardhat deploy --tags SourceChain --network linea-sepolia
 ```
+---
+### Configuration
 
-## 🔧 Configuration
-
-### Step 3: Wire Filecoin with Source Chains
-👀 **Automatically detects all deployed source chains** and configures **DealClientAxl**:
+#### Step 3: Wire Filecoin with Source Chains
+Automatically detects all deployed source chains and configures `DealClientAxl`:
 ```bash
 npx hardhat deploy --tags ConfigFilecoin --network filecoin
 ```
 
-### Step 4: Configure Source Chains
-🏗 **Sets up cross-chain messaging**:
+#### Step 4: Configure Source Chains
+Sets up cross-chain messaging:
 ```bash
-npx hardhat deploy --tags ConfigSourceChain --network linea-sepolia
+npx hardhat deploy --tags ConfigSourceChain --network avalanche
 ```
 
-### Running Full Deployment in One Command
+#### Running Full Deployment in One Command
 ```bash
 npx hardhat deploy --tags Filecoin --network filecoin && \
-npx hardhat deploy --tags SourceChain --network linea-sepolia && \
+npx hardhat deploy --tags SourceChain --network avalanche && \
 npx hardhat deploy --tags ConfigFilecoin --network filecoin && \
-npx hardhat deploy --tags ConfigSourceChain --network linea-sepolia
+npx hardhat deploy --tags ConfigSourceChain --network avalanche
 ```
 
 ## **🛠 Setting Up the Off-Chain Components (xChain Client)**
-The cross-chain data bridge requires running [xChain client](https://github.com/FIL-Builders/xchainClient) to process the storage requests and storages proof between the source chain and Filecoin.
 
-### 1️⃣ Set Up Forge
+The bridge requires running the [xChain client](https://github.com/FIL-Builders/xchainClient) to process storage requests and proofs between chains.
+
+👉 Follow the [installation guide]((https://github.com/FIL-Builders/xchainClient?tab=readme-ov-file#-installation)) to build and run it. 
+
+
+### Usage
+
+1️⃣ Start the xChain server:
 ```bash
-forge install
+./xchainClient daemon --config ./config/config.json --chain avalanche --buffer-service --aggregation-service
 ```
 
-### 2️⃣ Install & Use Go 1.22.7
+2️⃣ Upload data using the client tool:
 ```bash
-gvm install go1.22.7
-gvm use go1.22.7
+./xchainclient client offer-file --chain avalanche --config ./config/config.json <file_path> <payment-addr> <payment-amount>
 ```
 
-### 3️⃣ Build OnRamp Tools
+3️⃣ Check deal status:
 ```bash
-cd contract-tools/xchain
-go build
+./xchainClient client dealStatus <cid> <offerId>
 ```
 
-### 4️⃣ Generate Cross-Chain Keys
-```bash
-geth account new --keystore ~/onramp-contracts/xchain_key.json
-```
+## 📖 Additional Resources
 
-Configure environment:
-```bash
-export XCHAIN_KEY_PATH=~/onramp-contracts/xchain_key.json/UTC--2024-10-01T21-31-48.090887441Z--your-address
-export XCHAIN_PASSPHRASE=password
-export XCHAIN_ETH_API="ws://127.0.0.1:1234/rpc/v1"
-export MINER_ADDRESS=t01013
-```
-
-## Usage
-
-1. Start the xChain server:
-```bash
-./contract-tools/xchain/xchain_server
-```
-
-2. Upload data using the client tool:
-```bash
-./contract-tools/client.bash <file> <token_address> <token_id>
-```
-
-## Additional Resources
-
-- [Demo Application Repository](https://github.com/FIL-Builders/onrampDemo)
+- [Under the Hood: Architecture and Prototype of Cross-Chain Data Storage](https://medium.com/@filoz/under-the-hood-architecture-and-prototype-of-cross-chain-data-storage-6f8ba2c480d6)
+- [Demo app on Avalanche](https://github.com/FIL-Builders/dataBridgeDemo)
 - [xChain Client Documentation](https://docs.xchainjs.org/xchain-client/)
 - [Shashank's Guide](https://gist.github.com/lordshashank/fb2fbd53b5520a862bd451e3603b4718)
 - [Filecoin Deals Repo](https://github.com/lordshashank/filecoin-deals)
 
-## Contributing
+## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
