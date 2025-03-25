@@ -1,6 +1,10 @@
-import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-toolbox";
+
+import { HardhatUserConfig } from "hardhat/config";
+
 import "hardhat-deploy";
+
 import "dotenv/config";
 
 // Determine if we are on testnet or mainnet
@@ -111,7 +115,15 @@ const config: HardhatUserConfig = {
     },
   },
   defaultNetwork: "hardhat",
-  networks, // Use only relevant testnet or mainnet chains
+  networks: {
+    hardhat: {
+      mining: {
+        auto: true,
+        interval: 0
+      },
+      chainId: 314159,
+    },
+  },
   etherscan: {
     apiKey: {
       avalanche: "avalanche", // apiKey is not required, just set a placeholder
