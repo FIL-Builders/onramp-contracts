@@ -9,13 +9,13 @@ Bringing decentralized storage to every blockchain! This project enables **dApps
   - [Installation](#installation)
   - [Deployment](#deployment)
   - [Configuration](#configuration)
-- [Setting up xChain Client](#setting-up-xchain-client)
+- [Setting up xChain Client](#-setting-up-the-off-chain-components-xchain-client)
   - [Usage](#usage)
 - [Additional Resources](#additional-resources)
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🌍 Overview
+## 🌍Overview
 
 The CrossChain Data Bridge(aka, onramp contracts) enables applications on various blockchains (source chains) to store and retrieve data directly on the Filecoin decentralized storage network.
 

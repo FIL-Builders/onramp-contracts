@@ -61,6 +61,13 @@ if (env === "testnet") {
     axelar: getAxelarAddresses("avalanche"),
     isSourceChain: true,
   };
+  networks["base-sepolia"] = {
+    url: "https://sepolia.base.org",
+    chainId: 84532,
+    accounts: [process.env.DEPLOYER_PRIVATE_KEY || ""],
+    axelar: getAxelarAddresses("base-sepolia"),
+    isSourceChain: true,
+  };
 }
 
 if (env === "mainnet") {
@@ -110,11 +117,16 @@ const config: HardhatUserConfig = {
       default: 0,
     },
   },
+  sourcify: {
+    enabled: true
+  },
   defaultNetwork: "hardhat",
   networks, // Use only relevant testnet or mainnet chains
   etherscan: {
     apiKey: {
+      filecoin: "filecoin",
       avalanche: "avalanche", // apiKey is not required, just set a placeholder
+      "base-sepolia": process.env.BASESCAN_API_KEY || "",
     },
     customChains: [
       {
@@ -124,6 +136,22 @@ const config: HardhatUserConfig = {
           apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
           browserURL: "https://testnet.snowtrace.io/address"
         }
+      },
+      {
+        network: "filecoin",
+        chainId: 314159,
+        urls: {
+          apiURL: "https://filecoin-testnet.blockscout.com/api",
+          browserURL: "https://filecoin-testnet.blockscout.com",
+        },
+      },
+      {
+        network: "base-sepolia",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org",
+        },
       }
     ]
   },
