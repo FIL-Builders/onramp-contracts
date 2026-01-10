@@ -15,7 +15,7 @@ import {Misc} from "filecoin-solidity-api/contracts/v0.8/utils/Misc.sol";
 import {FilAddresses} from "filecoin-solidity-api/contracts/v0.8/utils/FilAddresses.sol";
 import {DataAttestation, IBridgeContract, StringsEqual} from "../sourceChain/Oracles.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {AxelarExecutable} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
+import {AxelarExecutable} from "../axelar/AxelarExecutable.sol";
 import {IAxelarGateway} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGateway.sol";
 import {IAxelarGasService} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGasService.sol";
 
@@ -25,7 +25,7 @@ contract DealClientAxl is AxelarExecutable {
     using AccountCBOR for *;
     using MarketCBOR for *;
 
-    IAxelarGasService public immutable gasService;
+    IAxelarGasService public gasService;
     uint64 public constant AUTHENTICATE_MESSAGE_METHOD_NUM = 2643134072;
     uint64 public constant DATACAP_RECEIVER_HOOK_METHOD_NUM = 3726118371;
     uint64 public constant MARKET_NOTIFY_DEAL_METHOD_NUM = 4186741094;
@@ -94,19 +94,22 @@ contract DealClientAxl is AxelarExecutable {
         uint256 price
     );
     event ReceivedDataCap(string received);
-    event DealNotify(
-        uint64 dealId,
-        bytes commP,
-        bytes chainId
-    );
+    event DealNotify(uint64 dealId, bytes commP, bytes chainId);
     event XChainProveDataStored(
-        string destinationChain, 
-        string destinationAddress);
+        string destinationChain,
+        string destinationAddress
+    );
 
-    constructor(
-            address _gateway,
-            address _gasReceiver
-    ) AxelarExecutable(_gateway) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
+        address _gateway,
+        address _gasReceiver
+    ) public initializer {
+        __AxelarExecutable_init(_gateway);
         gasService = IAxelarGasService(_gasReceiver);
     }
 
@@ -134,9 +137,14 @@ contract DealClientAxl is AxelarExecutable {
         }
     }
 
-    function getSourceChain(uint256 chainId) public view returns (string memory, address) {
+    function getSourceChain(
+        uint256 chainId
+    ) public view returns (string memory, address) {
         SourceChain memory source = chainIdToSourceChain[chainId];
-        require(source.sourceOracleAddress != address(0), "chainId Chain is not configured in Prover Contract");
+        require(
+            source.sourceOracleAddress != address(0),
+            "chainId Chain is not configured in Prover Contract"
+        );
         return (source.chainName, source.sourceOracleAddress);
     }
 
@@ -144,32 +152,45 @@ contract DealClientAxl is AxelarExecutable {
         providerGasFunds[providerAddrData] += msg.value;
     }
 
-    function makeDealProposal(DealRequest calldata deal) public returns (bytes32){
+    function makeDealProposal(
+        DealRequest calldata deal
+    ) public returns (bytes32) {
         require(
-            pieceStatus[deal.piece_cid] != Status.DealActivated || 
-            pieceStatus[deal.piece_cid] != Status.DealPublished, 
+            pieceStatus[deal.piece_cid] != Status.DealActivated ||
+                pieceStatus[deal.piece_cid] != Status.DealPublished,
             "this deal is already active or published"
         );
 
         uint256 idx = dealRequests.length;
         dealRequests.push(deal);
 
-        bytes32 proposalId =  keccak256(abi.encodePacked(msg.sender, block.timestamp, idx));
+        bytes32 proposalId = keccak256(
+            abi.encodePacked(msg.sender, block.timestamp, idx)
+        );
         dealIdToIndex[proposalId] = RequestIdx(idx, true);
 
         pieceRequests[deal.piece_cid] = RequestId(proposalId, true);
         pieceStatus[deal.piece_cid] = Status.DealPublished;
 
-        emit DealProposalCreate(proposalId, deal.piece_size, deal.verified_deal, deal.storage_price_per_epoch);
+        emit DealProposalCreate(
+            proposalId,
+            deal.piece_size,
+            deal.verified_deal,
+            deal.storage_price_per_epoch
+        );
         return proposalId;
     }
 
-    function getDealRequest(bytes32 proposalId) public view returns (DealRequest memory) {
+    function getDealRequest(
+        bytes32 proposalId
+    ) public view returns (DealRequest memory) {
         require(dealIdToIndex[proposalId].valid, "Deal does not exist");
         return dealRequests[dealIdToIndex[proposalId].idx];
     }
 
-    function getDealProposal(bytes32 proposalId) public view returns (bytes memory) {
+    function getDealProposal(
+        bytes32 proposalId
+    ) public view returns (bytes memory) {
         DealRequest memory deal = getDealRequest(proposalId);
         MarketTypes.DealProposal memory proposal = MarketTypes.DealProposal(
             CommonTypes.Cid(deal.piece_cid),
@@ -188,7 +209,9 @@ contract DealClientAxl is AxelarExecutable {
         return MarketCBOR.serializeDealProposal(proposal);
     }
 
-    function serializeExtraParams(ExtraParams memory params) internal pure returns (bytes memory) {
+    function serializeExtraParams(
+        ExtraParams memory params
+    ) internal pure returns (bytes memory) {
         CBOR.CBORBuffer memory buffer = CBOR.create(64);
         buffer.startFixedArray(4);
         buffer.writeString(params.location_ref);
@@ -199,20 +222,26 @@ contract DealClientAxl is AxelarExecutable {
         return buffer.data();
     }
 
-    function getExtraParams(bytes32 proposalId) public view returns (bytes memory extra_params) {
+    function getExtraParams(
+        bytes32 proposalId
+    ) public view returns (bytes memory extra_params) {
         DealRequest memory deal = getDealRequest(proposalId);
         return serializeExtraParams(deal.extra_params);
     }
 
     function updateDealStatus(bytes memory pieceCid) public {
-
         require(pieceDeals[pieceCid] > 0, "Deal does not exist for piece cid");
 
-        (int256 exit_code, MarketTypes.GetDealActivationReturn memory ret) = MarketAPI
-            .getDealActivation(pieceDeals[pieceCid]);
-        
-        require(exit_code == 0, "Deal activation failed with non zero exit code");
-      
+        (
+            int256 exit_code,
+            MarketTypes.GetDealActivationReturn memory ret
+        ) = MarketAPI.getDealActivation(pieceDeals[pieceCid]);
+
+        require(
+            exit_code == 0,
+            "Deal activation failed with non zero exit code"
+        );
+
         if (CommonTypes.ChainEpoch.unwrap(ret.terminated) > 0) {
             pieceStatus[pieceCid] = Status.DealTerminated;
         } else if (CommonTypes.ChainEpoch.unwrap(ret.activated) > 0) {
@@ -251,15 +280,15 @@ contract DealClientAxl is AxelarExecutable {
         );
         bytes memory payload = abi.encode(attest);
 
-        emit DealNotify(mdnp.dealId,
+        emit DealNotify(
+            mdnp.dealId,
             proposal.piece_cid.data,
             proposal.label.data
         );
 
         if (chainId == block.chainid) {
-            IBridgeContract(
-                chainIdToSourceChain[chainId].sourceOracleAddress
-            )._execute(
+            IBridgeContract(chainIdToSourceChain[chainId].sourceOracleAddress)
+                ._execute(
                     chainIdToSourceChain[chainId].chainName,
                     addressToHexString(address(this)),
                     payload
@@ -290,8 +319,7 @@ contract DealClientAxl is AxelarExecutable {
         //     gasFunds = providerGasFunds[providerAddrData];
         //     providerGasFunds[providerAddrData] = 0;
         // }
-        string memory sourceChain = chainIdToSourceChain[chainId]
-            .chainName;
+        string memory sourceChain = chainIdToSourceChain[chainId].chainName;
         string memory sourceOracleAddress = addressToHexString(
             chainIdToSourceChain[chainId].sourceOracleAddress
         );
@@ -310,8 +338,9 @@ contract DealClientAxl is AxelarExecutable {
         bytes32 commandId,
         string calldata sourceChain,
         string calldata sourceAddress,
-        bytes calldata payload) internal override{
-            //Do Nothing
+        bytes calldata payload
+    ) internal override {
+        //Do Nothing
     }
 
     function debug_call(
@@ -328,9 +357,8 @@ contract DealClientAxl is AxelarExecutable {
         );
         bytes memory payload = abi.encode(attest);
         if (chainId == block.chainid) {
-            IBridgeContract(
-                chainIdToSourceChain[chainId].sourceOracleAddress
-            )._execute(
+            IBridgeContract(chainIdToSourceChain[chainId].sourceOracleAddress)
+                ._execute(
                     chainIdToSourceChain[chainId].chainName,
                     addressToHexString(address(this)),
                     payload

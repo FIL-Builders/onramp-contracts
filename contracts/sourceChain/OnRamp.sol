@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
 
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Cid} from "../Cid.sol";
 import {TRUNCATOR} from "../Const.sol";
@@ -73,7 +74,7 @@ contract PODSIVerifier {
     }
 }
 
-contract OnRampContract is PODSIVerifier {
+contract OnRampContract is PODSIVerifier, Initializable {
     enum OfferStatus {
         Pending,
         Aggregated,
@@ -94,14 +95,15 @@ contract OnRampContract is PODSIVerifier {
 
     event DataReady(Offer offer, uint64 id);
     event AggregationCommitted(
-        uint64 aggId, 
+        uint64 aggId,
         bytes commP,
-        uint64[] offerIDs, 
-        address payoutAddr);
+        uint64[] offerIDs,
+        address payoutAddr
+    );
     event ProveDataStored(bytes commP, uint64 dealID);
 
-    uint64 private nextOfferId = 1;
-    uint64 private nextAggregateID = 1;
+    uint64 private nextOfferId;
+    uint64 private nextAggregateID;
     address public dataProofOracle;
     mapping(uint64 => Offer) public offers;
     mapping(uint64 => uint64[]) public aggregations;
@@ -112,6 +114,15 @@ contract OnRampContract is PODSIVerifier {
     mapping(uint64 => bool) public isOfferAggregated;
     mapping(uint64 => uint64) private offerToAggregationId;
     mapping(uint64 => uint64) public aggregationDealIds;
+
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize() public initializer {
+        nextOfferId = 1;
+        nextAggregateID = 1;
+    }
 
     function setOracle(address oracle_) external {
         if (dataProofOracle == address(0)) {
@@ -139,7 +150,7 @@ contract OnRampContract is PODSIVerifier {
             token: offer.token,
             status: OfferStatus.Pending
         });
-        
+
         offers[id] = newOffer;
         clientOffers[msg.sender].push(id);
 
@@ -147,21 +158,23 @@ contract OnRampContract is PODSIVerifier {
         return id;
     }
 
-    function getClientOffers(address client) external view returns (uint64[] memory) {
+    function getClientOffers(
+        address client
+    ) external view returns (uint64[] memory) {
         return clientOffers[client];
     }
 
     function getPendingOffers() external view returns (uint64[] memory) {
         uint64[] memory pending = new uint64[](nextOfferId - 1);
         uint64 count = 0;
-        
+
         for (uint64 i = 1; i < nextOfferId; i++) {
             if (!isOfferAggregated[i]) {
                 pending[count] = i;
                 count++;
             }
         }
-        
+
         assembly {
             mstore(pending, count)
         }
@@ -172,18 +185,24 @@ contract OnRampContract is PODSIVerifier {
         return nextOfferId - 1;
     }
 
-    function getOfferDetails(uint64 offerId) external view returns (
-        bytes memory commP,
-        uint64 size,
-        string memory location,
-        uint256 amount,
-        IERC20 token,
-        bool exists,
-        OfferStatus status
-    ) {
+    function getOfferDetails(
+        uint64 offerId
+    )
+        external
+        view
+        returns (
+            bytes memory commP,
+            uint64 size,
+            string memory location,
+            uint256 amount,
+            IERC20 token,
+            bool exists,
+            OfferStatus status
+        )
+    {
         Offer memory offer = offers[offerId];
         exists = offer.size != 0;
-        
+
         if (exists) {
             return (
                 offer.commP,
@@ -197,13 +216,12 @@ contract OnRampContract is PODSIVerifier {
         }
     }
 
-    function getOfferStatus(uint64 offerId) external view returns (
-        bool exists,
-        OfferStatus status
-    ) {
+    function getOfferStatus(
+        uint64 offerId
+    ) external view returns (bool exists, OfferStatus status) {
         Offer memory offer = offers[offerId];
         exists = offer.size != 0;
-        
+
         if (exists) {
             status = offer.status;
         }
@@ -231,7 +249,7 @@ contract OnRampContract is PODSIVerifier {
             );
             isOfferAggregated[offerID] = true;
             offerToAggregationId[offerID] = aggId;
-            
+
             offers[offerID].status = OfferStatus.Aggregated;
         }
         aggregations[aggId] = offerIDs;
@@ -240,17 +258,21 @@ contract OnRampContract is PODSIVerifier {
         emit AggregationCommitted(aggId, commP, offerIDs, payoutAddr);
     }
 
-    function getAggregationDetails(uint64 aggId) external view returns (
-        address payoutAddress,
-        bool isProven,
-        uint64 offerCount
-    ) {
+    function getAggregationDetails(
+        uint64 aggId
+    )
+        external
+        view
+        returns (address payoutAddress, bool isProven, uint64 offerCount)
+    {
         payoutAddress = aggregationPayout[aggId];
         isProven = provenAggregations[aggId];
         offerCount = uint64(aggregations[aggId].length);
     }
 
-    function getAggregationOffers(uint64 aggId) external view returns (uint64[] memory) {
+    function getAggregationOffers(
+        uint64 aggId
+    ) external view returns (uint64[] memory) {
         return aggregations[aggId];
     }
 
@@ -283,21 +305,25 @@ contract OnRampContract is PODSIVerifier {
         //transfer payment to the receiver if the payment amount > 0
         for (uint i = 0; i < aggregations[aggID].length; i++) {
             uint64 offerID = aggregations[aggID][i];
-            
+
             offers[offerID].status = OfferStatus.Proven;
-            
-            if(offers[offerID].amount > 0){
-                require(offers[offerID].token.transfer(
-                            aggregationPayout[aggID],
-                            offers[offerID].amount),
-                "Payment transfer failed"
+
+            if (offers[offerID].amount > 0) {
+                require(
+                    offers[offerID].token.transfer(
+                        aggregationPayout[aggID],
+                        offers[offerID].amount
+                    ),
+                    "Payment transfer failed"
                 );
             }
         }
         provenAggregations[aggID] = true;
     }
 
-    function getOfferDealId(uint64 offerId) external view returns (uint64 dealId, bool exists) {
+    function getOfferDealId(
+        uint64 offerId
+    ) external view returns (uint64 dealId, bool exists) {
         if (isOfferAggregated[offerId]) {
             uint64 aggId = offerToAggregationId[offerId];
             dealId = aggregationDealIds[aggId];

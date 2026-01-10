@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
+import "../axelar/AxelarExecutable.sol";
 import "@axelar-network/axelar-gmp-sdk-solidity/contracts/libs/AddressString.sol";
 
 interface IBridgeContract {
@@ -36,7 +36,14 @@ contract AxelarBridge is AxelarExecutable {
     );
     using StringToAddress for string;
 
-    constructor(address _gateway) AxelarExecutable(_gateway) {}
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address _gateway) public initializer {
+        __AxelarExecutable_init(_gateway);
+    }
 
     function setSenderReceiver(address sender_, address receiver_) external {
         receiver = receiver_;
@@ -48,7 +55,7 @@ contract AxelarBridge is AxelarExecutable {
         string calldata _sourceChain_,
         string calldata sourceAddress_,
         bytes calldata payload_
-    ) internal override{
+    ) internal override {
         require(!executedCommands[commandId], "Command already executed");
         DataAttestation memory attestation = abi.decode(
             payload_,
@@ -137,14 +144,23 @@ contract DebugMockBridge is IBridgeContract {
 contract AxelarBridgeDebug is AxelarExecutable {
     event ReceivedAttestation(bytes commP, string sourceAddress);
     //tracks whether a command has already been executed using the executedCommands mapping.
-    mapping(bytes32 => bool) public executedCommands; 
-    constructor(address _gateway) AxelarExecutable(_gateway) {}
+    mapping(bytes32 => bool) public executedCommands;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address _gateway) public initializer {
+        __AxelarExecutable_init(_gateway);
+    }
+
     function _execute(
         bytes32 commandId,
         string calldata,
         string calldata sourceAddress_,
         bytes calldata payload_
-    ) internal override{
+    ) internal override {
         //Prevents replay attacks by ensuring that a command cannot be executed more than once.
         require(!executedCommands[commandId], "Command already executed");
         executedCommands[commandId] = true;

@@ -15,10 +15,11 @@ import {Misc} from "filecoin-solidity-api/contracts/v0.8/utils/Misc.sol";
 import {FilAddresses} from "filecoin-solidity-api/contracts/v0.8/utils/FilAddresses.sol";
 import {DataAttestation, IBridgeContract, StringsEqual} from "../sourceChain/Oracles.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 using CBOR for CBOR.CBORBuffer;
 
-contract DealClient {
+contract DealClient is Initializable {
     using AccountCBOR for *;
     using MarketCBOR for *;
 
@@ -41,6 +42,12 @@ contract DealClient {
     mapping(bytes => Status) public pieceStatus;
 
     IBridgeContract public bridgeContract;
+
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize() public initializer {}
 
     function setBridgeContract(address _bridgeContract) external {
         if (address(bridgeContract) == address(0)) {
