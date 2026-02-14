@@ -32,8 +32,6 @@ describe("DealClientAxl", function () {
     const DealClientAxl = await ethers.getContractFactory("DealClientAxl");
     dealClient = await DealClientAxl.deploy(GATEWAY_ADDRESS, GAS_RECEIVER);
     await dealClient.deploymentTransaction().wait();
-    console.log(dealClient.target);
-
   });
 
   describe("makeDealProposal", function () {
