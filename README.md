@@ -53,7 +53,10 @@ You can refer to a [dataBridgeDemo](https://github.com/FIL-Builders/dataBridgeDe
 ## 🚀 Getting Started
 
 #### Prerequisites
-- Node.js and npm installed
+- **Node.js 20.x, 22.x, or another supported even-numbered release**
+  - ⚠️ Hardhat does NOT support odd-numbered or end-of-life Node.js versions (for example, v21.x)
+  - See [Hardhat Node.js Compatibility](https://hardhat.org/hardhat-runner/docs/reference/stability-guarantees#node.js-versions-support) for details
+- npm (comes with Node.js)
 - Go 1.22.7 or later
 - Access to test tokens for your chosen source chain
 - Test FIL for Filecoin Calibration network
