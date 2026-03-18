@@ -53,7 +53,7 @@ You can refer to a [dataBridgeDemo](https://github.com/FIL-Builders/dataBridgeDe
 ## 🚀 Getting Started
 
 #### Prerequisites
-- **Node.js v18 or higher** (LTS versions recommended: 20.x or 22.x)
+- **Node.js 20.x, 22.x, or another supported even-numbered release**
   - ⚠️ Hardhat does NOT support Node.js v21 or other non-LTS versions
   - See [Hardhat Node.js Compatibility](https://hardhat.org/hardhat-runner/docs/reference/stability-guarantees#node.js-versions-support) for details
 - npm (comes with Node.js)
